@@ -1,9 +1,9 @@
 const readyStates: { [i: number]: string } = {
-	0: "UNSENT",
-	1: "OPENED",
-	2: "HEADERS_RECEIVED",
-	3: "LOADING",
-	4: "DONE",
+	[XMLHttpRequest.UNSENT]: "UNSENT",
+	[XMLHttpRequest.OPENED]: "OPENED",
+	[XMLHttpRequest.HEADERS_RECEIVED]: "HEADERS_RECEIVED",
+	[XMLHttpRequest.LOADING]: "LOADING",
+	[XMLHttpRequest.DONE]: "DONE",
 };
 
 // Heavily inspired by https://stackoverflow.com/a/72137265
@@ -38,25 +38,13 @@ const urlRegex =
  * Takes a regex to match against requests made and a callback to process the response.
  */
 const createXmlHttpOverride = (
-	open: (
-		method: string,
-		url: string | URL,
-		async?: boolean,
-		username?: string | null,
-		password?: string | null,
-	) => void,
-): ((
-	method: string,
-	url: string | URL,
-	async?: boolean,
-	username?: string | null,
-	password?: string | null,
-) => void) => {
+	open: XMLHttpRequest['open'],
+): XMLHttpRequest['open'] => {
 	return function (
 		this: XMLHttpRequest,
 		method: string,
 		url: string | URL,
-		async?: boolean,
+		async: boolean = false,
 		username?: string | null,
 		password?: string | null,
 	): void {
@@ -71,66 +59,61 @@ const createXmlHttpOverride = (
 					readyStateText: readyStates[this.readyState],
 				});
 				// When the request is opened, we prepare the override
-				if (this.readyState === 1) {
-					this.onreadystatechange = ((originalOnreadystatechange) =>
-						function (event: Event) {
-							console.log({
-								description: "Overwritten onreadystatechange called",
-								event: JSON.stringify(event),
-								readyState: this.readyState,
-								availableReadyStates: {
-									UNSENT: XMLHttpRequest.UNSENT,
-									OPENED: XMLHttpRequest.OPENED,
-									HEADERS_RECEIVED: XMLHttpRequest.HEADERS_RECEIVED,
-									LOADING: XMLHttpRequest.LOADING,
-									DONE: XMLHttpRequest.DONE,
-								},
-								url,
-							});
-							if (!urlRegex.test(url.toString())) {
-								console.log("Not a dice roll, doing the regular call.", url);
-								return originalOnreadystatechange?.call(this, event);
-							}
-							console.log("It is a dice roll, trying to override.", url);
+				if (this.readyState === XMLHttpRequest.OPENED) {
+                    const newOnReadyStateChange = (originalOnreadystatechange: XMLHttpRequest["onreadystatechange"]) =>
+                    function (this: XMLHttpRequest, event: Event) {
+                        // console.log({
+                        // 	description: "Overwritten onreadystatechange called",
+                        // 	event: JSON.stringify(event),
+                        // 	readyState: this.readyState,
+                        // 	url,
+                        // });
+                        if (!urlRegex.test(url.toString())) {
+                            console.log("Not a dice roll, doing the regular call.", url);
+                            return originalOnreadystatechange?.call(this, event);
+                        }
+                        console.log("It is a dice roll, trying to override.", url);
 
-							// Read data from response.
-							(async function (this: XMLHttpRequest) {
-								let success = false;
-								let data: unknown;
+                        // Read data from response.
+                        const overrideCall = async function (this: XMLHttpRequest) {
+                            let success = false;
+                            let data: unknown;
 
-								for (const i in interceptors) {
-									const { regex, override, callback } = interceptors[i];
+                            for (const i in interceptors) {
+                                const { regex, override, callback } = interceptors[i];
 
-									// Override.
-									if (regex?.test(url.toString())) {
-										if (override) {
-											try {
-												data = await callback(url.toString());
-												if (typeof data === "string") {
-													data = JSON.parse(data);
-												}
-												success = true;
-											} catch (e) {
-												console.error(
-													`Interceptor '${regex}' failed for url ${url}. ${e}`,
-												);
-											}
-										}
-									} else {
-										console.log(`URL ${url} does not match regex ${regex}`);
-									}
-								}
+                                // Override.
+                                if (regex?.test(url.toString())) {
+                                    if (override) {
+                                        try {
+                                            data = await callback(url.toString());
+                                            if (typeof data === "string") {
+                                                data = JSON.parse(data);
+                                            }
+                                            success = true;
+                                        } catch (e) {
+                                            console.error(
+                                                `Interceptor '${regex}' failed for url ${url}. ${e}`,
+                                            );
+                                        }
+                                    }
+                                } else {
+                                    console.log(`URL ${url} does not match regex ${regex}`);
+                                }
+                            }
 
-								// Override the response text.
-								Object.defineProperty(this, "responseText", {
-									value: JSON.stringify(data),
-								});
+                            // Override the response text.
+                            Object.defineProperty(this, "responseText", {
+                                value: JSON.stringify(data),
+                            });
 
-								// Tell the client callback that we're done.
-								// TODO This ensures that the call is still made. We don't really want to do that.
-								return originalOnreadystatechange?.call(this, event);
-							}).call(this);
-						})(this.onreadystatechange);
+                            // Tell the client callback that we're done.
+                            // TODO This ensures that the call is still made. We don't really want to do that.
+                            return originalOnreadystatechange?.call(this, event);
+                        };
+                        overrideCall.call(this);
+                    };
+					this.onreadystatechange = newOnReadyStateChange(this.onreadystatechange);
 				}
 			},
 			false,
