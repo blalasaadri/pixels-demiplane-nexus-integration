@@ -1,4 +1,6 @@
+import { registerRollListener } from "./roll-handler";
 import type { RollRequest } from "./roll-parser";
+import type { DiceSize } from "./types";
 
 /**
  * Whether something is a critical roll or not.
@@ -6,24 +8,12 @@ import type { RollRequest } from "./roll-parser";
  * both d12s are the same, that should be a critical success) and only a 20 on a d20 is currently returned as a
  * critical success while only a 1 on a d20 is currently returned as a critical fail.
  */
-enum CritResult {
+export enum CritResult {
 	NO_CRIT = 0,
 	CRITICAL_FAILURE = 1,
 	CRITICAL_SUCCESS = 2,
 }
 
-/**
- * The sizes of dice that could be requested.
- * <p/>
- * Demiplane Nexus doesn't currently support a game with d100s (though the api does respond when requesting a d100
- * - or a d5, a d66, or a d420). So while 1d100 is a possible roll request, they may also use 1d10+1d00 or 1d10+1d%
- * or something else in the future.
- * <p/>
- * They also don't support any games with Fudge dice and the api doesn't work for dF yet. Since Pixels do offer
- * Fudge dice though, I'm going with my best guess as to what the Demiplane syntax may be if they ever do start
- * supporting Fudge dice.
- */
-type DiceSize = 4 | 6 | 8 | 10 | 12 | 20 | 100 | "F";
 /**
  * A type representing the result of a single roll. This is a separate type rather than just number,
  * so that non-numeric roll results can more easily be integrated in the future.
@@ -108,17 +98,26 @@ const expectResultForDice = async (
 	diceSize: DiceSize,
 	diceCount: number,
 ): Promise<{ diceSize: DiceSize; results: SingleRollResult[] }> => {
-	const expectedRolls: SingleRollResult[] = new Array(diceCount).fill(
+	console.log(`Requested rolls of ${diceCount}d${diceSize}`);
+	const expectedRolls: Promise<SingleRollResult>[] = new Array(diceCount);
+	expectedRolls.fill(
 		new Promise((resolve, reject) => {
-			if (diceSize === "F") {
-				// TODO Wait for either a Pixel or the call of a JS function
-				const randomNumber = Math.round(Math.random() * 2) - 1;
-				resolve(randomNumber);
-			} else {
-				// TODO Wait for either a Pixel or the call of a JS function
-				const randomNumber = Math.round(Math.random() * diceSize) + 1;
-				resolve(randomNumber);
-			}
+			console.log(`Waiting for a roll of 1d${diceSize}`);
+			registerRollListener({
+				diceSize,
+				callback: (rollEvent) => {
+					console.log({
+						description: "Roll event occurred",
+						rollEvent,
+					});
+					if (rollEvent.success) {
+						// TODO Do more with the result
+						resolve(rollEvent.face);
+					} else {
+						reject();
+					}
+				},
+			});
 		}),
 	);
 	return {

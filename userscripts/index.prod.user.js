@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.0.1
+// @version 0.0.2
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -64,55 +64,66 @@ const createXmlHttpOverride = (open) => {
                 readyState: this.readyState,
                 readyStateText: readyStates[this.readyState],
             });
+            const lastReadyState = this.readyState;
             // When the request is opened, we prepare the override
             if (this.readyState === XMLHttpRequest.OPENED) {
+                console.log("Overriding onreadystatechange...");
                 const newOnReadyStateChange = (originalOnreadystatechange) => function (event) {
-                    // console.log({
-                    // 	description: "Overwritten onreadystatechange called",
-                    // 	event: JSON.stringify(event),
-                    // 	readyState: this.readyState,
-                    // 	url,
-                    // });
-                    if (!diceRollUrlRegex.test(url.toString())) {
-                        console.log("Not a dice roll, doing the regular call.", url);
-                        return originalOnreadystatechange === null || originalOnreadystatechange === void 0 ? void 0 : originalOnreadystatechange.call(this, event);
-                    }
-                    console.log("It is a dice roll, trying to override.", url);
-                    // Read data from response.
-                    const overrideCall = function () {
-                        return __awaiter(this, void 0, void 0, function* () {
-                            let data;
-                            for (const i in interceptors) {
-                                const { regex, override, callback } = interceptors[i];
-                                // Override.
-                                if (regex === null || regex === void 0 ? void 0 : regex.test(url.toString())) {
-                                    if (override) {
+                    console.log({
+                        description: "Overwritten onreadystatechange called",
+                        event: JSON.stringify(event),
+                        readyState: this.readyState,
+                        lastReadyState,
+                        url,
+                    });
+                    if (this.readyState === XMLHttpRequest.DONE) {
+                        if (!diceRollUrlRegex.test(url.toString())) {
+                            console.log("Not a dice roll, doing the regular call.", url);
+                            return originalOnreadystatechange === null || originalOnreadystatechange === void 0 ? void 0 : originalOnreadystatechange.call(this, event);
+                        }
+                        console.log("It is a dice roll, trying to override.", url);
+                        // Read data from response.
+                        const overrideCall = function () {
+                            return __awaiter(this, void 0, void 0, function* () {
+                                let data;
+                                for (const i in interceptors) {
+                                    const { regex, callback } = interceptors[i];
+                                    // Override.
+                                    if (regex === null || regex === void 0 ? void 0 : regex.test(url.toString())) {
                                         try {
                                             data = yield callback(url.toString());
                                             if (typeof data === "string") {
                                                 data = JSON.parse(data);
                                             }
+                                            console.log({
+                                                description: "Received roll response in interceptor",
+                                                data,
+                                            });
                                         }
                                         catch (e) {
                                             console.error(`Interceptor '${regex}' failed for url ${url}. ${e}`);
                                         }
                                     }
+                                    else {
+                                        console.log(`URL ${url} does not match regex ${regex}`);
+                                    }
                                 }
-                                else {
-                                    console.log(`URL ${url} does not match regex ${regex}`);
-                                }
-                            }
-                            // Override the response text.
-                            Object.defineProperty(this, "responseText", {
-                                configurable: true,
-                                value: JSON.stringify(data),
+                                console.log({
+                                    description: "Overriding responseText in response",
+                                    data,
+                                });
+                                // Override the response text.
+                                Object.defineProperty(this, "responseText", {
+                                    configurable: true,
+                                    value: JSON.stringify(data),
+                                });
+                                // Tell the client callback that we're done.
+                                // TODO This ensures that the call is still made. We don't really want to do that.
+                                return originalOnreadystatechange === null || originalOnreadystatechange === void 0 ? void 0 : originalOnreadystatechange.call(this, event);
                             });
-                            // Tell the client callback that we're done.
-                            // TODO This ensures that the call is still made. We don't really want to do that.
-                            return originalOnreadystatechange === null || originalOnreadystatechange === void 0 ? void 0 : originalOnreadystatechange.call(this, event);
-                        });
-                    };
-                    overrideCall.call(this);
+                        };
+                        overrideCall.call(this);
+                    }
                 };
                 this.onreadystatechange = newOnReadyStateChange(this.onreadystatechange);
             }
@@ -123,7 +134,6 @@ const createXmlHttpOverride = (open) => {
 const main = () => {
     interceptors.push({
         regex: diceRollUrlRegex,
-        override: true,
         callback: (rollUrl) => __awaiter(void 0, void 0, void 0, function* () {
             var _a, _b, _c, _d;
             const characterUrlMatches = unsafeWindow.location.href.match(characterSheetUrlRegex);
@@ -132,11 +142,42 @@ const main = () => {
             if (rollCommand) {
                 const parsedRollCommand = (0, roll_parser_1.parseRollRequest)(rollCommand);
                 const result = yield (0, roll_executor_1.expectRolls)(parsedRollCommand, (_b = characterUrlMatches === null || characterUrlMatches === void 0 ? void 0 : characterUrlMatches.groups) === null || _b === void 0 ? void 0 : _b.gameSystem);
+                // const result: RollRequestResult = {
+                // 	total: 1,
+                // 	crit: CritResult.CRITICAL_FAILURE,
+                // 	raw_dice: {
+                // 		parts: [
+                // 			{
+                // 				type: "dice",
+                // 				dice: [
+                // 					{
+                // 						type: "single_dice",
+                // 						value: 1,
+                // 						size: 20,
+                // 						is_kept: true,
+                // 						rolls: [1],
+                // 						exploded: false,
+                // 						imploded: false,
+                // 					},
+                // 				],
+                // 				annotation: "",
+                // 				value: 1,
+                // 				is_crit: 2,
+                // 				num_kept: 1,
+                // 				text: "1d20 (**1**) ",
+                // 				num_dice: 1,
+                // 				dice_size: 20,
+                // 				operators: [],
+                // 			},
+                // 			{ type: "operator", value: "+", annotation: "" },
+                // 			{ type: "constant", value: 9, annotation: "" },
+                // 		]
+                // 	},
+                // 	error: ""
+                // };
                 console.log({
                     description: "Itercepting dice rolls",
                     rollUrl,
-                    //rollUrlMatches,
-                    //rollCommand,
                     parsedRollCommand,
                     gameSystem: (_c = characterUrlMatches === null || characterUrlMatches === void 0 ? void 0 : characterUrlMatches.groups) === null || _c === void 0 ? void 0 : _c.gameSystem,
                     characterSheetId: (_d = characterUrlMatches === null || characterUrlMatches === void 0 ? void 0 : characterUrlMatches.groups) === null || _d === void 0 ? void 0 : _d.characterId,
@@ -154,7 +195,7 @@ main();
 /***/ }),
 
 /***/ 787:
-/***/ (function(__unused_webpack_module, exports) {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -167,7 +208,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.expectRolls = void 0;
+exports.expectRolls = exports.CritResult = void 0;
+const roll_handler_1 = __webpack_require__(952);
 /**
  * Whether something is a critical roll or not.
  * This doesn't seem to take the game system into consideration right now (e.g. in Daggerheart if the results of
@@ -179,19 +221,28 @@ var CritResult;
     CritResult[CritResult["NO_CRIT"] = 0] = "NO_CRIT";
     CritResult[CritResult["CRITICAL_FAILURE"] = 1] = "CRITICAL_FAILURE";
     CritResult[CritResult["CRITICAL_SUCCESS"] = 2] = "CRITICAL_SUCCESS";
-})(CritResult || (CritResult = {}));
+})(CritResult || (exports.CritResult = CritResult = {}));
 const expectResultForDice = (diceSize, diceCount) => __awaiter(void 0, void 0, void 0, function* () {
-    const expectedRolls = new Array(diceCount).fill(new Promise((resolve, reject) => {
-        if (diceSize === "F") {
-            // TODO Wait for either a Pixel or the call of a JS function
-            const randomNumber = Math.round(Math.random() * 2) - 1;
-            resolve(randomNumber);
-        }
-        else {
-            // TODO Wait for either a Pixel or the call of a JS function
-            const randomNumber = Math.round(Math.random() * diceSize) + 1;
-            resolve(randomNumber);
-        }
+    console.log(`Requested rolls of ${diceCount}d${diceSize}`);
+    const expectedRolls = new Array(diceCount);
+    expectedRolls.fill(new Promise((resolve, reject) => {
+        console.log(`Waiting for a roll of 1d${diceSize}`);
+        (0, roll_handler_1.registerRollListener)({
+            diceSize,
+            callback: (rollEvent) => {
+                console.log({
+                    description: "Roll event occurred",
+                    rollEvent,
+                });
+                if (rollEvent.success) {
+                    // TODO Do more with the result
+                    resolve(rollEvent.face);
+                }
+                else {
+                    reject();
+                }
+            },
+        });
     }));
     return {
         diceSize,
@@ -403,6 +454,376 @@ const handleFudgeDiceResults = (diceRolls) => {
     resultPart.text = `${individualResults.length}dF (${diceResultTexts.join(", ")}) `;
     return resultPart;
 };
+
+
+/***/ }),
+
+/***/ 952:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.registerRollListener = void 0;
+const listeners = {
+    d4: [],
+    d6: [],
+    d8: [],
+    d10: [],
+    d00: [],
+    d12: [],
+    d20: [],
+    dF: [],
+};
+const listExpectedRolls = () => {
+    return {
+        d4: listeners.d4.length,
+        d6: listeners.d6.length,
+        d8: listeners.d8.length,
+        d10: listeners.d10.length,
+        d00: listeners.d00.length,
+        d12: listeners.d12.length,
+        d20: listeners.d20.length,
+        dF: listeners.dF.length,
+    };
+};
+// @ts-ignore
+unsafeWindow.listExpectedRolls = listExpectedRolls;
+// @ts-ignore
+unsafeWindow.expectedRolls = listExpectedRolls();
+const registerRollListener = (listener) => {
+    switch (listener.diceSize) {
+        case 4: {
+            listeners.d4.push(listener);
+            break;
+        }
+        case 6: {
+            listeners.d6.push(listener);
+            break;
+        }
+        case 8: {
+            listeners.d8.push(listener);
+            break;
+        }
+        case 10: {
+            listeners.d10.push(listener);
+            break;
+        }
+        case 12: {
+            listeners.d12.push(listener);
+            break;
+        }
+        case 20: {
+            listeners.d20.push(listener);
+            break;
+        }
+        case 100: {
+            listeners.d10.push(listener);
+            listeners.d00.push(listener);
+            break;
+        }
+        case "F": {
+            listeners.dF.push(listener);
+            break;
+        }
+        default: {
+            console.error(`Expecting roll of unknown die size ${listener.diceSize}`);
+        }
+    }
+    // @ts-ignore
+    unsafeWindow.expectedRolls = listExpectedRolls();
+};
+exports.registerRollListener = registerRollListener;
+const handleDieRolled = (dieType, face, colorway, dieName, dieId) => {
+    let listener;
+    let diceSize;
+    switch (dieType) {
+        case "d4": {
+            diceSize = 4;
+            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d4.shift();
+            break;
+        }
+        case "d6pipped":
+        case "d6": {
+            diceSize = 6;
+            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d6.shift();
+            break;
+        }
+        case "d8": {
+            diceSize = 8;
+            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d8.shift();
+            break;
+        }
+        case "d10": {
+            diceSize = 10;
+            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d10.shift();
+            break;
+        }
+        case "d00": {
+            diceSize = 100;
+            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d00.shift();
+            break;
+        }
+        case "d12": {
+            diceSize = 12;
+            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d12.shift();
+            break;
+        }
+        case "d20": {
+            diceSize = 20;
+            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d20.shift();
+            break;
+        }
+        case "d6fudge": {
+            diceSize = "F";
+            listener = listeners === null || listeners === void 0 ? void 0 : listeners.dF.shift();
+            break;
+        }
+        default: {
+            console.error(`Unknown die type ${dieType} rolled.`);
+        }
+    }
+    let rollEvent;
+    if (listener && diceSize) {
+        rollEvent = {
+            success: true,
+            diceSize,
+            face,
+            dieType,
+            dieColorway: colorway,
+            dieName: dieName,
+            dieId: dieId,
+        };
+        listener.callback(rollEvent);
+        // @ts-ignore
+        unsafeWindow.expectedRolls = listExpectedRolls();
+    }
+    else {
+        rollEvent = {
+            success: false,
+            diceSize: "unknown",
+            dieType: "unknown",
+        };
+    }
+    return rollEvent;
+};
+// export const connectToDie = async () => {
+// 	const pixel = await requestPixel();
+// 	pixel.addEventListener("roll", (face) => {
+// 		const {
+// 			dieType,
+// 			colorway: pixelColorway,
+// 			name: pixelName,
+// 			pixelId,
+// 		} = pixel;
+// 		handleDieRolled(dieType, face, pixelColorway, pixelName, pixelId);
+// 	});
+// };
+const registerVirtualRollers = () => {
+    const rollVirtualD4 = () => {
+        const randomFace = Math.round(Math.random() * 4) + 1;
+        return handleDieRolled("d4", randomFace, "virtual", "Virtual d4", -4);
+    };
+    const rollVirtualD6 = () => {
+        const randomFace = Math.round(Math.random() * 6) + 1;
+        return handleDieRolled("d6", randomFace, "virtual", "Virtual d6", -6);
+    };
+    const rollVirtualD8 = () => {
+        const randomFace = Math.round(Math.random() * 8) + 1;
+        return handleDieRolled("d8", randomFace, "virtual", "Virtual d8", -8);
+    };
+    const rollVirtualD10 = () => {
+        const randomFace = Math.round(Math.random() * 10);
+        return handleDieRolled("d10", randomFace, "virtual", "Virtual d10", -10);
+    };
+    const rollVirtualD00 = () => {
+        const randomFace = Math.round(Math.random() * 10) * 10;
+        return handleDieRolled("d00", randomFace, "virtual", "Virtual d00", -100);
+    };
+    const rollVirtualD12 = () => {
+        const randomFace = Math.round(Math.random() * 12) + 1;
+        return handleDieRolled("d12", randomFace, "virtual", "Virtual d12", -12);
+    };
+    const rollVirtualD20 = () => {
+        const randomFace = Math.round(Math.random() * 20) + 1;
+        return handleDieRolled("d20", randomFace, "virtual", "Virtual d20", -20);
+    };
+    const rollVirtualDF = () => {
+        const randomFace = Math.round(Math.random() * 2) - 1;
+        return handleDieRolled("d6fudge", randomFace, "virtual", "Virtual dF", -3);
+    };
+    // @ts-ignore
+    unsafeWindow.rollVirtualD4 = rollVirtualD4;
+    // @ts-ignore
+    unsafeWindow.rollVirtualD6 = rollVirtualD6;
+    // @ts-ignore
+    unsafeWindow.rollVirtualD8 = rollVirtualD8;
+    // @ts-ignore
+    unsafeWindow.rollVirtualD10 = rollVirtualD10;
+    // @ts-ignore
+    unsafeWindow.rollVirtualD00 = rollVirtualD00;
+    // @ts-ignore
+    unsafeWindow.rollVirtualD12 = rollVirtualD12;
+    // @ts-ignore
+    unsafeWindow.rollVirtualD20 = rollVirtualD20;
+    // @ts-ignore
+    unsafeWindow.rollVirtualDF = rollVirtualDF;
+    return {
+        rollVirtualD4,
+        rollVirtualD6,
+        rollVirtualD8,
+        rollVirtualD10,
+        rollVirtualD00,
+        rollVirtualD12,
+        rollVirtualD20,
+        rollVirtualDF,
+    };
+};
+registerVirtualRollers();
+const registerRollCancelers = () => {
+    const cancelD4Roll = () => {
+        var _a;
+        const rollEvent = {
+            success: false,
+            diceSize: 4,
+            dieType: "d4virtual",
+        };
+        (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d4.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
+        // @ts-ignore
+        unsafeWindow.expectedRolls = listExpectedRolls();
+        return rollEvent;
+    };
+    const cancelD6Roll = () => {
+        var _a;
+        const rollEvent = {
+            success: false,
+            diceSize: 6,
+            dieType: "d6virtual",
+        };
+        (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d6.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
+        // @ts-ignore
+        unsafeWindow.expectedRolls = listExpectedRolls();
+        return rollEvent;
+    };
+    const cancelD8Roll = () => {
+        var _a;
+        const rollEvent = {
+            success: false,
+            diceSize: 8,
+            dieType: "d8virtual",
+        };
+        (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d8.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
+        // @ts-ignore
+        unsafeWindow.expectedRolls = listExpectedRolls();
+        return rollEvent;
+    };
+    const cancelD10Roll = () => {
+        var _a;
+        const rollEvent = {
+            success: false,
+            diceSize: 10,
+            dieType: "d10virtual",
+        };
+        (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d10.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
+        // @ts-ignore
+        unsafeWindow.expectedRolls = listExpectedRolls();
+        return rollEvent;
+    };
+    const cancelD00Roll = () => {
+        var _a;
+        const rollEvent = {
+            success: false,
+            diceSize: 100,
+            dieType: "d00virtual",
+        };
+        (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d00.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
+        // @ts-ignore
+        unsafeWindow.expectedRolls = listExpectedRolls();
+        return rollEvent;
+    };
+    const cancelD12Roll = () => {
+        var _a;
+        const rollEvent = {
+            success: false,
+            diceSize: 12,
+            dieType: "d12virtual",
+        };
+        (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d12.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
+        // @ts-ignore
+        unsafeWindow.expectedRolls = listExpectedRolls();
+        return rollEvent;
+    };
+    const cancelD20Roll = () => {
+        var _a;
+        const rollEvent = {
+            success: false,
+            diceSize: 20,
+            dieType: "d20virtual",
+        };
+        (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d20.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
+        // @ts-ignore
+        unsafeWindow.expectedRolls = listExpectedRolls();
+        return rollEvent;
+    };
+    const cancelD100Roll = () => {
+        var _a, _b;
+        const d10RollEvent = {
+            success: false,
+            diceSize: 10,
+            dieType: "d10virtual",
+        };
+        (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d10.shift()) === null || _a === void 0 ? void 0 : _a.callback(d10RollEvent);
+        const d00RollEvent = {
+            success: false,
+            diceSize: 100,
+            dieType: "d00virtual",
+        };
+        (_b = listeners === null || listeners === void 0 ? void 0 : listeners.d00.shift()) === null || _b === void 0 ? void 0 : _b.callback(d00RollEvent);
+        // @ts-ignore
+        unsafeWindow.expectedRolls = listExpectedRolls();
+        return [d10RollEvent, d00RollEvent];
+    };
+    const cancelDFRoll = () => {
+        var _a;
+        const rollEvent = {
+            success: false,
+            diceSize: "F",
+            dieType: "dFvirtual",
+        };
+        (_a = listeners === null || listeners === void 0 ? void 0 : listeners.dF.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
+        // @ts-ignore
+        unsafeWindow.expectedRolls = listExpectedRolls();
+        return rollEvent;
+    };
+    // @ts-ignore
+    unsafeWindow.cancelD4Roll = cancelD4Roll;
+    // @ts-ignore
+    unsafeWindow.cancelD6Roll = cancelD6Roll;
+    // @ts-ignore
+    unsafeWindow.cancelD8Roll = cancelD8Roll;
+    // @ts-ignore
+    unsafeWindow.cancelD10Roll = cancelD10Roll;
+    // @ts-ignore
+    unsafeWindow.cancelD00Roll = cancelD00Roll;
+    // @ts-ignore
+    unsafeWindow.cancelD12Roll = cancelD12Roll;
+    // @ts-ignore
+    unsafeWindow.cancelD20Roll = cancelD20Roll;
+    // @ts-ignore
+    unsafeWindow.cancelD100Roll = cancelD100Roll;
+    // @ts-ignore
+    unsafeWindow.cancelDFRoll = cancelDFRoll;
+    return {
+        cancelD4Roll,
+        cancelD6Roll,
+        cancelD8Roll,
+        cancelD10Roll,
+        cancelD12Roll,
+        cancelD20Roll,
+        cancelD100Roll,
+        cancelDFRoll,
+    };
+};
+registerRollCancelers();
 
 
 /***/ }),

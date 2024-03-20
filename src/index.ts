@@ -15,7 +15,6 @@ const readyStates: { [i: number]: string } = {
 };
 
 interface HttpRequestInterceptor {
-	override: boolean;
 	regex: RegExp;
 	callback: (url: string) => Promise<unknown>;
 }
@@ -49,6 +48,7 @@ const createXmlHttpOverride = (
 					readyState: this.readyState,
 					readyStateText: readyStates[this.readyState],
 				});
+				const lastReadyState = this.readyState;
 				// When the request is opened, we prepare the override
 				if (this.readyState === XMLHttpRequest.OPENED) {
 					const newOnReadyStateChange = (
@@ -59,24 +59,25 @@ const createXmlHttpOverride = (
 							// 	description: "Overwritten onreadystatechange called",
 							// 	event: JSON.stringify(event),
 							// 	readyState: this.readyState,
+							//	lastReadyState,
 							// 	url,
 							// });
-							if (!diceRollUrlRegex.test(url.toString())) {
-								console.log("Not a dice roll, doing the regular call.", url);
-								return originalOnreadystatechange?.call(this, event);
-							}
-							console.log("It is a dice roll, trying to override.", url);
+							if (this.readyState === XMLHttpRequest.DONE) {
+								if (!diceRollUrlRegex.test(url.toString())) {
+									console.log("Not a dice roll, doing the regular call.", url);
+									return originalOnreadystatechange?.call(this, event);
+								}
+								console.log("It is a dice roll, trying to override.", url);
 
-							// Read data from response.
-							const overrideCall = async function (this: XMLHttpRequest) {
-								let data: unknown;
+								// Read data from response.
+								const overrideCall = async function (this: XMLHttpRequest) {
+									let data: unknown;
 
-								for (const i in interceptors) {
-									const { regex, override, callback } = interceptors[i];
+									for (const i in interceptors) {
+										const { regex, callback } = interceptors[i];
 
-									// Override.
-									if (regex?.test(url.toString())) {
-										if (override) {
+										// Override.
+										if (regex?.test(url.toString())) {
 											try {
 												data = await callback(url.toString());
 												if (typeof data === "string") {
@@ -87,23 +88,23 @@ const createXmlHttpOverride = (
 													`Interceptor '${regex}' failed for url ${url}. ${e}`,
 												);
 											}
+										} else {
+											console.log(`URL ${url} does not match regex ${regex}`);
 										}
-									} else {
-										console.log(`URL ${url} does not match regex ${regex}`);
 									}
-								}
 
-								// Override the response text.
-								Object.defineProperty(this, "responseText", {
-									configurable: true,
-									value: JSON.stringify(data),
-								});
+									// Override the response text.
+									Object.defineProperty(this, "responseText", {
+										configurable: true,
+										value: JSON.stringify(data),
+									});
 
-								// Tell the client callback that we're done.
-								// TODO This ensures that the call is still made. We don't really want to do that.
-								return originalOnreadystatechange?.call(this, event);
-							};
-							overrideCall.call(this);
+									// Tell the client callback that we're done.
+									// TODO This ensures that the call is still made. We don't really want to do that.
+									return originalOnreadystatechange?.call(this, event);
+								};
+								overrideCall.call(this);
+							}
 						};
 					this.onreadystatechange = newOnReadyStateChange(
 						this.onreadystatechange,
@@ -120,7 +121,6 @@ const createXmlHttpOverride = (
 const main = () => {
 	interceptors.push({
 		regex: diceRollUrlRegex,
-		override: true,
 		callback: async (rollUrl) => {
 			const characterUrlMatches = unsafeWindow.location.href.match(
 				characterSheetUrlRegex,
@@ -138,8 +138,6 @@ const main = () => {
 				console.log({
 					description: "Itercepting dice rolls",
 					rollUrl,
-					//rollUrlMatches,
-					//rollCommand,
 					parsedRollCommand,
 					gameSystem: characterUrlMatches?.groups?.gameSystem,
 					characterSheetId: characterUrlMatches?.groups?.characterId,
