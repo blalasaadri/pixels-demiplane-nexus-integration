@@ -111,10 +111,11 @@ const expectResultForDice = async (
 	const expectedRolls: SingleRollResult[] = new Array(diceCount).fill(
 		new Promise((resolve, reject) => {
 			if (diceSize === "F") {
+				// TODO Wait for either a Pixel or the call of a JS function
 				const randomNumber = Math.round(Math.random() * 2) - 1;
 				resolve(randomNumber);
 			} else {
-				// TODO This is simulating the roll rather than getting it from a Pixels die
+				// TODO Wait for either a Pixel or the call of a JS function
 				const randomNumber = Math.round(Math.random() * diceSize) + 1;
 				resolve(randomNumber);
 			}

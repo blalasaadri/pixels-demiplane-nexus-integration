@@ -6,6 +6,8 @@
 // @author blalasaadri
 // @homepage https://github.com/blalasaadri/pixels-demiplane-nexus-userscript#readme
 // @icon https://www.google.com/s2/favicons?sz=64&domain=demiplane.com
+// @updateURL https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/userscripts/index.prod.user.js
+// @downloadURL https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/userscripts/index.prod.user.js
 // @license https://opensource.org/licenses/MIT
 // @match https://app.demiplane.com/nexus/*/character-sheet/*-*-*-*-*
 // @require https://unpkg.com/@trim21/gm-fetch@0.1.15
@@ -181,11 +183,12 @@ var CritResult;
 const expectResultForDice = (diceSize, diceCount) => __awaiter(void 0, void 0, void 0, function* () {
     const expectedRolls = new Array(diceCount).fill(new Promise((resolve, reject) => {
         if (diceSize === "F") {
+            // TODO Wait for either a Pixel or the call of a JS function
             const randomNumber = Math.round(Math.random() * 2) - 1;
             resolve(randomNumber);
         }
         else {
-            // TODO This is simulating the roll rather than getting it from a Pixels die
+            // TODO Wait for either a Pixel or the call of a JS function
             const randomNumber = Math.round(Math.random() * diceSize) + 1;
             resolve(randomNumber);
         }

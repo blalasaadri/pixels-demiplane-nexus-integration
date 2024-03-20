@@ -42,7 +42,9 @@
     ],
     "exclude": [],
     "resources": [],
-    "keyedResources": {}
+    "keyedResources": {},
+    "downloadURL": "https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/userscripts/index.prod.user.js",
+    "updateURL": "https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/userscripts/index.prod.user.js"
   },
   "devDependencies": {
     "@biomejs/biome": "1.6.1",
