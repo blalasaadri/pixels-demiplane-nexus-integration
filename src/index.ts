@@ -1,4 +1,10 @@
+import { expectRolls } from "./roll-executor";
 import { parseRollRequest } from "./roll-parser";
+
+const diceRollUrlRegex =
+	/https:\/\/utils-api.demiplane.com\/dice-roll\?roll=(?<roll>.*)/;
+const characterSheetUrlRegex =
+	/https:\/\/app.demiplane.com\/nexus\/(?<gameSystem>[a-zA-Z0-9-]+)\/character-sheet\/(?<characterId>[a-z0-9-]+)/;
 
 const readyStates: { [i: number]: string } = {
 	[XMLHttpRequest.UNSENT]: "UNSENT",
@@ -15,9 +21,6 @@ interface HttpRequestInterceptor {
 }
 
 const interceptors: HttpRequestInterceptor[] = [];
-
-const urlRegex =
-	/https:\/\/utils-api.demiplane.com\/dice-roll\?roll=(?<roll>.*)/;
 
 /**
  * XML HTPP requests can be intercepted with interceptors.
@@ -58,7 +61,7 @@ const createXmlHttpOverride = (
 							// 	readyState: this.readyState,
 							// 	url,
 							// });
-							if (!urlRegex.test(url.toString())) {
+							if (!diceRollUrlRegex.test(url.toString())) {
 								console.log("Not a dice roll, doing the regular call.", url);
 								return originalOnreadystatechange?.call(this, event);
 							}
@@ -92,6 +95,7 @@ const createXmlHttpOverride = (
 
 								// Override the response text.
 								Object.defineProperty(this, "responseText", {
+									configurable: true,
 									value: JSON.stringify(data),
 								});
 
@@ -115,97 +119,35 @@ const createXmlHttpOverride = (
 
 const main = () => {
 	interceptors.push({
-		regex: urlRegex,
+		regex: diceRollUrlRegex,
 		override: true,
-		callback: async (url) => {
-			const matches = url.match(urlRegex);
-			const rollCommand = matches?.groups?.roll;
+		callback: async (rollUrl) => {
+			const characterUrlMatches = unsafeWindow.location.href.match(
+				characterSheetUrlRegex,
+			);
+
+			const rollUrlMatches = rollUrl.match(diceRollUrlRegex);
+			const rollCommand = rollUrlMatches?.groups?.roll;
 			if (rollCommand) {
 				const parsedRollCommand = parseRollRequest(rollCommand);
+				const result = await expectRolls(
+					parsedRollCommand,
+					characterUrlMatches?.groups?.gameSystem,
+				);
 
 				console.log({
-					description: "Trying to roll dice",
-					url,
-					matches,
-					rollCommand,
+					description: "Itercepting dice rolls",
+					rollUrl,
+					//rollUrlMatches,
+					//rollCommand,
 					parsedRollCommand,
+					gameSystem: characterUrlMatches?.groups?.gameSystem,
+					characterSheetId: characterUrlMatches?.groups?.characterId,
+					result,
 				});
+
+				return result;
 			}
-
-			// Replace response data.
-
-			// Example for a Pathfinder 2e custom roll
-			const pathfinder2eCustomRollResult = {
-				pixels: true,
-				total: 21,
-				crit: 0,
-				raw_dice: {
-					parts: [
-						{
-							type: "dice",
-							dice: [
-								{
-									type: "single_dice",
-									value: 3,
-									size: 12,
-									is_kept: true,
-									rolls: [3],
-									exploded: false,
-									imploded: false,
-								},
-							],
-							annotation: "",
-							value: 3,
-							is_crit: 0,
-							num_kept: 1,
-							text: "1d12 (3) ",
-							num_dice: 1,
-							dice_size: 12,
-							operators: [],
-						},
-						{
-							type: "operator",
-							value: "+",
-							annotation: "",
-						},
-						{
-							type: "dice",
-							dice: [
-								{
-									type: "single_dice",
-									value: 17,
-									size: 20,
-									is_kept: true,
-									rolls: [17],
-									exploded: false,
-									imploded: false,
-								},
-							],
-							annotation: "",
-							value: 17,
-							is_crit: 0,
-							num_kept: 1,
-							text: "1d20 (17) ",
-							num_dice: 1,
-							dice_size: 20,
-							operators: [],
-						},
-						{
-							type: "operator",
-							value: "+",
-							annotation: "",
-						},
-						{
-							type: "constant",
-							value: 1,
-							annotation: "",
-						},
-					],
-				},
-				error: "",
-			};
-
-			return pathfinder2eCustomRollResult;
 		},
 	});
 

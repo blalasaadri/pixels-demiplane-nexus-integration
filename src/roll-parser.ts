@@ -1,7 +1,7 @@
 const extractRollParts = (rollQuery: string): string[] => {
 	return rollQuery
-		?.replace("%2B", "+")
-		?.replace("-", "+-")
+		?.replace(/%2B/g, "+")
+		?.replace(/-/g, "+-")
 		?.replace(/\++/g, "+")
 		?.split("+");
 };
@@ -51,6 +51,18 @@ const modifierRegex = /^(?<count>-?\d+)$/;
 export const parseRollRequest = (rollQuery: string): RollRequest => {
 	const rollParts = extractRollParts(rollQuery);
 
+	const rollRequest: RollRequest = {
+		d4: countDiceMatchingRegex(rollParts, d4Regex),
+		d6: countDiceMatchingRegex(rollParts, d6Regex),
+		d8: countDiceMatchingRegex(rollParts, d8Regex),
+		d10: countDiceMatchingRegex(rollParts, d10Regex),
+		d12: countDiceMatchingRegex(rollParts, d12Regex),
+		d20: countDiceMatchingRegex(rollParts, d20Regex),
+		dF: countDiceMatchingRegex(rollParts, dFRegex),
+		d100: countDiceMatchingRegex(rollParts, d100Regex),
+		modifier: countDiceMatchingRegex(rollParts, modifierRegex),
+	};
+
 	const unusedParts = rollParts
 		.filter((rollPart) => !d4Regex.test(rollPart))
 		.filter((rollPart) => !d6Regex.test(rollPart))
@@ -62,20 +74,15 @@ export const parseRollRequest = (rollQuery: string): RollRequest => {
 		.filter((rollPart) => !dFRegex.test(rollPart))
 		.filter((rollPart) => !modifierRegex.test(rollPart));
 	if (unusedParts.length > 0) {
-		console.error(
-			`The roll query contained the following parts that could not be interpreted: ${unusedParts}`,
-		);
+		console.error({
+			description:
+				"The roll query contained parts that could not be interpreted",
+			rollQuery,
+			rollParts,
+			rollRequest,
+			unusedParts,
+		});
 	}
 
-	return {
-		d4: countDiceMatchingRegex(rollParts, d4Regex),
-		d6: countDiceMatchingRegex(rollParts, d6Regex),
-		d8: countDiceMatchingRegex(rollParts, d8Regex),
-		d10: countDiceMatchingRegex(rollParts, d10Regex),
-		d12: countDiceMatchingRegex(rollParts, d12Regex),
-		d20: countDiceMatchingRegex(rollParts, d20Regex),
-		dF: countDiceMatchingRegex(rollParts, dFRegex),
-		d100: countDiceMatchingRegex(rollParts, d100Regex),
-		modifier: countDiceMatchingRegex(rollParts, modifierRegex),
-	};
+	return rollRequest;
 };
