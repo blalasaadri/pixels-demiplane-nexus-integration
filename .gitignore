@@ -105,3 +105,4 @@ dist
 
 # Custom files
 /userscripts/*.js
+!/userscripts/index.prod.user.js
