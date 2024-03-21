@@ -39,7 +39,82 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const roll_executor_1 = __webpack_require__(787);
 const roll_parser_1 = __webpack_require__(329);
 const diceRollUrlRegex = /https:\/\/utils-api.demiplane.com\/dice-roll\?roll=(?<roll>.*)/;
-const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/(?<gameSystem>[a-zA-Z0-9-]+)\/character-sheet\/(?<characterId>[a-z0-9-]+)/;
+const integration = (() => {
+    const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/(?<gameSystem>[a-zA-Z0-9-]+)\/character-sheet\/(?<characterId>[a-z0-9-]+)/;
+    const characterSheetInfo = () => {
+        var _a, _b;
+        const characterSheetUrl = unsafeWindow.location.href;
+        const characterSheetMatches = characterSheetUrl.match(characterSheetUrlRegex);
+        const characterId = (_a = characterSheetMatches === null || characterSheetMatches === void 0 ? void 0 : characterSheetMatches.groups) === null || _a === void 0 ? void 0 : _a.characterId;
+        const gameSystem = (_b = characterSheetMatches === null || characterSheetMatches === void 0 ? void 0 : characterSheetMatches.groups) === null || _b === void 0 ? void 0 : _b.gameSystem;
+        return {
+            characterId,
+            gameSystem,
+        };
+    };
+    const integrationEnabledStorageName = "pixelsIntegrationEnabled";
+    const isEnabled = (characterId) => __awaiter(void 0, void 0, void 0, function* () {
+        let characterSheetId = characterId;
+        if (!characterSheetId) {
+            characterSheetId = characterSheetInfo().characterId || "";
+        }
+        let enabledForCharacter = false;
+        const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
+        if (localStorageEntryString) {
+            const localStorageEntry = JSON.parse(localStorageEntryString);
+            enabledForCharacter = localStorageEntry[characterSheetId] === "true";
+        }
+        return enabledForCharacter;
+    });
+    // @ts-ignore
+    unsafeWindow.isPixelsIntegrationEnabled = () => {
+        let integrationEnabledForCharacter = false;
+        const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
+        const { characterId } = characterSheetInfo();
+        if (enabledString && characterId) {
+            const enabledObject = JSON.parse(enabledString);
+            const characterEnabledInfo = enabledObject[characterId];
+            integrationEnabledForCharacter = characterEnabledInfo === "true";
+        }
+        return integrationEnabledForCharacter;
+    };
+    const toggleEnabled = (characterId) => __awaiter(void 0, void 0, void 0, function* () {
+        let characterSheetId = characterId;
+        if (!characterSheetId) {
+            characterSheetId = characterSheetInfo().characterId || "";
+        }
+        let enabledForCharacter = !isEnabled(characterId);
+        const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
+        if (localStorageEntryString) {
+            const localStorageEntry = JSON.parse(localStorageEntryString);
+            enabledForCharacter = localStorageEntry[characterSheetId] === "true";
+        }
+        return enabledForCharacter;
+    });
+    // @ts-ignore
+    unsafeWindow.togglePixelsItegrationEnabled = () => {
+        let integrationPreviouslyEnabledForCharacter = false;
+        const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
+        const { characterId } = characterSheetInfo();
+        const enabledObject = enabledString
+            ? JSON.parse(enabledString)
+            : {};
+        if (characterId) {
+            const characterEnabledInfo = enabledObject[characterId];
+            integrationPreviouslyEnabledForCharacter =
+                characterEnabledInfo === "true";
+            enabledObject[characterId] =
+                `${!integrationPreviouslyEnabledForCharacter}`;
+            unsafeWindow.localStorage.setItem(integrationEnabledStorageName, JSON.stringify(enabledObject));
+        }
+        return !integrationPreviouslyEnabledForCharacter;
+    };
+    return {
+        isEnabled,
+        toggleEnabled,
+        characterSheetInfo,
+    };
+})();
 const readyStates = {
     [XMLHttpRequest.UNSENT]: "UNSENT",
     [XMLHttpRequest.OPENED]: "OPENED",
@@ -67,15 +142,14 @@ const createXmlHttpOverride = (open) => {
             const lastReadyState = this.readyState;
             // When the request is opened, we prepare the override
             if (this.readyState === XMLHttpRequest.OPENED) {
-                console.log("Overriding onreadystatechange...");
                 const newOnReadyStateChange = (originalOnreadystatechange) => function (event) {
-                    console.log({
-                        description: "Overwritten onreadystatechange called",
-                        event: JSON.stringify(event),
-                        readyState: this.readyState,
-                        lastReadyState,
-                        url,
-                    });
+                    // console.log({
+                    // 	description: "Overwritten onreadystatechange called",
+                    // 	event: JSON.stringify(event),
+                    // 	readyState: this.readyState,
+                    //	lastReadyState,
+                    // 	url,
+                    // });
                     if (this.readyState === XMLHttpRequest.DONE) {
                         if (!diceRollUrlRegex.test(url.toString())) {
                             console.log("Not a dice roll, doing the regular call.", url);
@@ -95,10 +169,6 @@ const createXmlHttpOverride = (open) => {
                                             if (typeof data === "string") {
                                                 data = JSON.parse(data);
                                             }
-                                            console.log({
-                                                description: "Received roll response in interceptor",
-                                                data,
-                                            });
                                         }
                                         catch (e) {
                                             console.error(`Interceptor '${regex}' failed for url ${url}. ${e}`);
@@ -108,10 +178,6 @@ const createXmlHttpOverride = (open) => {
                                         console.log(`URL ${url} does not match regex ${regex}`);
                                     }
                                 }
-                                console.log({
-                                    description: "Overriding responseText in response",
-                                    data,
-                                });
                                 // Override the response text.
                                 Object.defineProperty(this, "responseText", {
                                     configurable: true,
@@ -135,52 +201,19 @@ const main = () => {
     interceptors.push({
         regex: diceRollUrlRegex,
         callback: (rollUrl) => __awaiter(void 0, void 0, void 0, function* () {
-            var _a, _b, _c, _d;
-            const characterUrlMatches = unsafeWindow.location.href.match(characterSheetUrlRegex);
+            var _a;
+            const { characterId, gameSystem } = integration.characterSheetInfo();
             const rollUrlMatches = rollUrl.match(diceRollUrlRegex);
             const rollCommand = (_a = rollUrlMatches === null || rollUrlMatches === void 0 ? void 0 : rollUrlMatches.groups) === null || _a === void 0 ? void 0 : _a.roll;
             if (rollCommand) {
                 const parsedRollCommand = (0, roll_parser_1.parseRollRequest)(rollCommand);
-                const result = yield (0, roll_executor_1.expectRolls)(parsedRollCommand, (_b = characterUrlMatches === null || characterUrlMatches === void 0 ? void 0 : characterUrlMatches.groups) === null || _b === void 0 ? void 0 : _b.gameSystem);
-                // const result: RollRequestResult = {
-                // 	total: 1,
-                // 	crit: CritResult.CRITICAL_FAILURE,
-                // 	raw_dice: {
-                // 		parts: [
-                // 			{
-                // 				type: "dice",
-                // 				dice: [
-                // 					{
-                // 						type: "single_dice",
-                // 						value: 1,
-                // 						size: 20,
-                // 						is_kept: true,
-                // 						rolls: [1],
-                // 						exploded: false,
-                // 						imploded: false,
-                // 					},
-                // 				],
-                // 				annotation: "",
-                // 				value: 1,
-                // 				is_crit: 2,
-                // 				num_kept: 1,
-                // 				text: "1d20 (**1**) ",
-                // 				num_dice: 1,
-                // 				dice_size: 20,
-                // 				operators: [],
-                // 			},
-                // 			{ type: "operator", value: "+", annotation: "" },
-                // 			{ type: "constant", value: 9, annotation: "" },
-                // 		]
-                // 	},
-                // 	error: ""
-                // };
+                const result = yield (0, roll_executor_1.expectRolls)(parsedRollCommand, gameSystem);
                 console.log({
                     description: "Itercepting dice rolls",
                     rollUrl,
                     parsedRollCommand,
-                    gameSystem: (_c = characterUrlMatches === null || characterUrlMatches === void 0 ? void 0 : characterUrlMatches.groups) === null || _c === void 0 ? void 0 : _c.gameSystem,
-                    characterSheetId: (_d = characterUrlMatches === null || characterUrlMatches === void 0 ? void 0 : characterUrlMatches.groups) === null || _d === void 0 ? void 0 : _d.characterId,
+                    gameSystem,
+                    characterSheetId: characterId,
                     result,
                 });
                 return result;
@@ -606,18 +639,6 @@ const handleDieRolled = (dieType, face, colorway, dieName, dieId) => {
     }
     return rollEvent;
 };
-// export const connectToDie = async () => {
-// 	const pixel = await requestPixel();
-// 	pixel.addEventListener("roll", (face) => {
-// 		const {
-// 			dieType,
-// 			colorway: pixelColorway,
-// 			name: pixelName,
-// 			pixelId,
-// 		} = pixel;
-// 		handleDieRolled(dieType, face, pixelColorway, pixelName, pixelId);
-// 	});
-// };
 const registerVirtualRollers = () => {
     const rollVirtualD4 = () => {
         const randomFace = Math.round(Math.random() * 4) + 1;
