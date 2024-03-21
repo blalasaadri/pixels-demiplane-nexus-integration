@@ -109,121 +109,125 @@ const integration = (() => {
 	};
 })();
 
-const readyStates: { [i: number]: string } = {
-	[XMLHttpRequest.UNSENT]: "UNSENT",
-	[XMLHttpRequest.OPENED]: "OPENED",
-	[XMLHttpRequest.HEADERS_RECEIVED]: "HEADERS_RECEIVED",
-	[XMLHttpRequest.LOADING]: "LOADING",
-	[XMLHttpRequest.DONE]: "DONE",
-};
-
 interface HttpRequestInterceptor {
-	regex: RegExp;
 	callback: (url: string) => Promise<unknown>;
 }
 
 const interceptors: HttpRequestInterceptor[] = [];
+let interceptor: HttpRequestInterceptor;
 
-/**
- * XML HTPP requests can be intercepted with interceptors.
- * Takes a regex to match against requests made and a callback to process the response.
- * <p/>
- * This solution is heavily inspired by https://stackoverflow.com/a/72137265.
- */
-const createXmlHttpOverride = (
-	open: XMLHttpRequest["open"],
-): XMLHttpRequest["open"] => {
-	return function (
-		this: XMLHttpRequest,
-		method: string,
-		url: string | URL,
-		async = false,
-		username?: string | null,
-		password?: string | null,
-	): void {
-		// TODO This will ensure that the client only ever sees our result; it won't however prevent the call from actually happening.
-		//   Maybe there is a way to do that?
-		this.addEventListener(
-			"readystatechange",
-			function () {
-				console.log({
-					description: "readystatechange event called",
-					readyState: this.readyState,
-					readyStateText: readyStates[this.readyState],
-				});
-				const lastReadyState = this.readyState;
-				// When the request is opened, we prepare the override
-				if (this.readyState === XMLHttpRequest.OPENED) {
-					const newOnReadyStateChange = (
-						originalOnreadystatechange: XMLHttpRequest["onreadystatechange"],
-					) =>
-						function (this: XMLHttpRequest, event: Event) {
-							// console.log({
-							// 	description: "Overwritten onreadystatechange called",
-							// 	event: JSON.stringify(event),
-							// 	readyState: this.readyState,
-							//	lastReadyState,
-							// 	url,
-							// });
-							if (this.readyState === XMLHttpRequest.DONE) {
-								if (!diceRollUrlRegex.test(url.toString())) {
-									console.log("Not a dice roll, doing the regular call.", url);
-									return originalOnreadystatechange?.call(this, event);
-								}
-								console.log("It is a dice roll, trying to override.", url);
+// @ts-ignore
+if (!XMLHttpRequest.prototype.nativeOpen) {
+	// Override the open function
+	(() => {
+		// @ts-ignore
+		XMLHttpRequest.prototype.nativeOpen = XMLHttpRequest.prototype.open;
 
-								// Read data from response.
-								const overrideCall = async function (this: XMLHttpRequest) {
-									let data: unknown;
+		// Create our custom "open" function
+		const customOpen: XMLHttpRequest["open"] = function (
+			this: XMLHttpRequest,
+			method: string,
+			url: string | URL,
+			async?: boolean,
+			username?: string | null,
+			password?: string | null,
+		) {
+			// When the request is opened, we want to save the URL in a place where it is retrievable during the send request.
+			// @ts-ignore
+			this.requestURL = url;
 
-									for (const i in interceptors) {
-										const { regex, callback } = interceptors[i];
+			// After that, things can proceed as normal for the moment.
+			if (async === undefined) {
+				// @ts-ignore
+				this.nativeOpen(method, url);
+			} else {
+				// @ts-ignore
+				this.nativeOpen(method, url, async, username, password);
+			}
+		};
 
-										// Override.
-										if (regex?.test(url.toString())) {
-											try {
-												data = await callback(url.toString());
-												if (typeof data === "string") {
-													data = JSON.parse(data);
-												}
-											} catch (e) {
-												console.error(
-													`Interceptor '${regex}' failed for url ${url}. ${e}`,
-												);
-											}
-										} else {
-											console.log(`URL ${url} does not match regex ${regex}`);
-										}
-									}
+		XMLHttpRequest.prototype.open = customOpen;
+	})();
 
-									// Override the response text.
-									Object.defineProperty(this, "responseText", {
-										configurable: true,
-										value: JSON.stringify(data),
-									});
+	// Override the send function
+	(() => {
+		// @ts-ignore
+		XMLHttpRequest.prototype.nativeSend = XMLHttpRequest.prototype.send;
 
-									// Tell the client callback that we're done.
-									// TODO This ensures that the call is still made. We don't really want to do that.
-									return originalOnreadystatechange?.call(this, event);
-								};
-								overrideCall.call(this);
-							}
-						};
-					this.onreadystatechange = newOnReadyStateChange(
-						this.onreadystatechange,
+		// Create our custom "load" function
+		const customSend: XMLHttpRequest["send"] = function (
+			this: XMLHttpRequest,
+			body?: Document | XMLHttpRequestBodyInit | null,
+		) {
+			// Check whether we're on a character sheet and if so, what the character's ID is
+			const { characterId } = integration.characterSheetInfo();
+
+			integration.isEnabled(characterId || "").then((isEnabled) => {
+				// @ts-ignore
+				const requestURL: string | URL = this.requestURL;
+
+				if (
+					characterId &&
+					isEnabled &&
+					diceRollUrlRegex.test(requestURL?.toString())
+				) {
+					// Do not send the request but instead request the results from our pixels dice
+					console.log(
+						`Received a dice roll request to ${requestURL}, overriding it.`,
 					);
-				}
-			},
-			false,
-		);
 
-		open.call(this, method, url, async as boolean, username, password);
-	};
-};
+					const { callback } = interceptor;
+					// First, we wait for the response from either Pixels or virtual dice
+					callback(requestURL?.toString())
+						.then((data) => {
+							// When we have received the response, we have to process it just a bit.
+							console.log(
+								`Received faked response with data ${JSON.stringify(
+									data,
+								)}; ensuring that it is a JSON.`,
+							);
+							let parsedData = data;
+							if (typeof data === "string") {
+								parsedData = JSON.parse(data);
+							}
+							return parsedData;
+						})
+						.then((data) => {
+							// I haven't yet found a way to fully simulate sending and then receiving a response
+							//  from the API. So instead, now that we actually have the value we'll send the request,
+							//  wait for a reply and then replace the response.
+							this.addEventListener("readystatechange", () => {
+								console.log(
+									`Setting the responseText to ${JSON.stringify(data)}`,
+								);
+
+								// Now that we have processed the data, we set it as the response
+								Object.defineProperty(this, "responseText", {
+									configurable: true,
+									value: JSON.stringify(data),
+								});
+							});
+							// @ts-ignore
+							this.nativeSend(body);
+						})
+						.catch((e) => {
+							console.error(`Interceptor failed for url ${requestURL}.`, e);
+						});
+				} else {
+					// Either this is not a dice roll request, or the integration is not enabled. Proceed as normal.
+					// @ts-ignore
+					this.nativeSend(body);
+				}
+			});
+		};
+
+		// @ts-ignore
+		XMLHttpRequest.prototype.send = customSend;
+	})();
+}
 
 const main = () => {
 	interceptors.push({
-		regex: diceRollUrlRegex,
 		callback: async (rollUrl) => {
 			const { characterId, gameSystem } = integration.characterSheetInfo();
 
@@ -246,10 +250,7 @@ const main = () => {
 			}
 		},
 	});
-
-	XMLHttpRequest.prototype.open = createXmlHttpOverride(
-		XMLHttpRequest.prototype.open,
-	);
+	interceptor = interceptors[0];
 };
 
 main();
