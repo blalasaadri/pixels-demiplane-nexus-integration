@@ -1,6 +1,10 @@
 import * as integration from "./integration-utils";
 import { expectRolls, mergeRollResults } from "./roll-executor";
 import { parseRollRequest } from "./roll-parser";
+import {
+	addRollsExpectedNotification,
+	removeRollsExpectedNotification,
+} from "./ui-notifications";
 
 const diceRollUrlRegex =
 	/^https:\/\/utils-api.demiplane.com\/dice-roll\?roll=(?<roll>[^&]*)$/;
@@ -95,10 +99,13 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 								false,
 							)}'`,
 						);
+						addRollsExpectedNotification(rollRequest);
 
 						// Do not send the request yet, but instead request the results from virtual dice or Pixels dice
 						expectRolls(rollRequest, gameSystem)
 							.then((data) => {
+								removeRollsExpectedNotification();
+
 								// When we have received the response, we have to process it just a bit.
 								if (integration.isDebugEnabled()) {
 									console.log(

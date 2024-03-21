@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.0.3
+// @version 0.0.4
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -53,6 +53,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const integration = __importStar(__webpack_require__(530));
 const roll_executor_1 = __webpack_require__(787);
 const roll_parser_1 = __webpack_require__(329);
+const ui_notifications_1 = __webpack_require__(213);
 const diceRollUrlRegex = /^https:\/\/utils-api.demiplane.com\/dice-roll\?roll=(?<roll>[^&]*)$/;
 // @ts-ignore
 if (!XMLHttpRequest.prototype.nativeOpen) {
@@ -118,9 +119,11 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
                     }
                     else {
                         console.log(`The Pixel integration is waiting for the following rolls: '${rollRequest.stringify(false)}'`);
+                        (0, ui_notifications_1.addRollsExpectedNotification)(rollRequest);
                         // Do not send the request yet, but instead request the results from virtual dice or Pixels dice
                         (0, roll_executor_1.expectRolls)(rollRequest, gameSystem)
                             .then((data) => {
+                            (0, ui_notifications_1.removeRollsExpectedNotification)();
                             // When we have received the response, we have to process it just a bit.
                             if (integration.isDebugEnabled()) {
                                 console.log(`Received faked response with data ${JSON.stringify(data)}; ensuring that it is a JSON.`);
@@ -579,6 +582,13 @@ const mergeRollResults = (firstRollResult, secondRollResult) => {
         ...firstRollResult.raw_dice.parts,
         ...secondRollResult.raw_dice.parts,
     ];
+    if ((0, integration_utils_1.isDebugEnabled)()) {
+        console.log({
+            firstRollResult,
+            secondRollResult,
+            mergeRollResults: exports.mergeRollResults,
+        });
+    }
     return mergedResult;
 };
 exports.mergeRollResults = mergeRollResults;
@@ -1075,12 +1085,137 @@ registerRollCancelers();
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.parseRollRequest = exports.RollRequest = void 0;
+exports.parseRollRequest = void 0;
 const integration_utils_1 = __webpack_require__(530);
+const types_1 = __webpack_require__(613);
 const extractRollParts = (rollQuery) => {
     var _a, _b, _c;
     return (_c = (_b = (_a = rollQuery === null || rollQuery === void 0 ? void 0 : rollQuery.replace(/%2B/g, "+")) === null || _a === void 0 ? void 0 : _a.replace(/-/g, "+-")) === null || _b === void 0 ? void 0 : _b.replace(/\++/g, "+")) === null || _c === void 0 ? void 0 : _c.split("+");
 };
+const countDiceMatchingRegex = (rollParts, regex) => rollParts
+    .filter((rollPart) => regex.test(rollPart))
+    .map((rollPart) => {
+    var _a;
+    const matches = rollPart.match(regex);
+    return Number.parseInt(((_a = matches === null || matches === void 0 ? void 0 : matches.groups) === null || _a === void 0 ? void 0 : _a.count) || "0");
+})
+    .reduce((a, b) => a + b, 0);
+const d4Regex = /^(?<count>\d+)d4$/;
+const d6Regex = /^(?<count>\d+)d6$/;
+const d8Regex = /^(?<count>\d+)d8$/;
+const d10Regex = /^(?<count>\d+)d10$/;
+const d100Regex = /^(?<count>\d+)d100$/;
+const d12Regex = /^(?<count>\d+)d12$/;
+const d20Regex = /^(?<count>\d+)d20$/;
+const dFRegex = /^(?<count>\d+)dF$/;
+const modifierRegex = /^(?<count>-?\d+)$/;
+/**
+ * A method for parsing the requested rolls into an object that is easier to handle.
+ *
+ * @param rollQuery the roll query, e.g. "3d6+3", "3d6%2B3", "1d20+9", "2d8+1d6+2", etc.
+ * @returns an object listing how many of each possible dice should be rolled for this request
+ */
+const parseRollRequest = (rollQuery) => {
+    const rollParts = extractRollParts(rollQuery);
+    const enabledForDice = (0, integration_utils_1.integrationEnabledForDice)();
+    const rollRequest = new types_1.RollRequest();
+    if (enabledForDice.d4) {
+        rollRequest.d4 = countDiceMatchingRegex(rollParts, d4Regex);
+    }
+    if (enabledForDice.d6) {
+        rollRequest.d6 = countDiceMatchingRegex(rollParts, d6Regex);
+    }
+    if (enabledForDice.d8) {
+        rollRequest.d8 = countDiceMatchingRegex(rollParts, d8Regex);
+    }
+    if (enabledForDice.d10) {
+        rollRequest.d10 = countDiceMatchingRegex(rollParts, d10Regex);
+    }
+    if (enabledForDice.d12) {
+        rollRequest.d12 = countDiceMatchingRegex(rollParts, d12Regex);
+    }
+    if (enabledForDice.d20) {
+        rollRequest.d20 = countDiceMatchingRegex(rollParts, d20Regex);
+    }
+    if (enabledForDice.d10 && enabledForDice.d00) {
+        rollRequest.d100 = countDiceMatchingRegex(rollParts, d100Regex);
+    }
+    rollRequest.modifier = countDiceMatchingRegex(rollParts, modifierRegex);
+    const unusedParts = rollParts
+        .filter((rollPart) => !(enabledForDice.d4 && d4Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.d6 && d6Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.d8 && d8Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.d10 && d10Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.d12 && d12Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.d20 && d20Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.d10 && enabledForDice.d00 && d100Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.dF && dFRegex.test(rollPart)))
+        .filter((rollPart) => !modifierRegex.test(rollPart));
+    if (unusedParts.length > 0) {
+        if ((0, integration_utils_1.isDebugEnabled)()) {
+            console.log({
+                description: "The roll query contained parts that could not be interpreted or dice types that are not currently enabled",
+                rollQuery,
+                rollParts,
+                rollRequest,
+                unusedParts,
+            });
+        }
+        rollRequest.unusedParts = unusedParts.join("%2B");
+    }
+    return rollRequest;
+};
+exports.parseRollRequest = parseRollRequest;
+
+
+/***/ }),
+
+/***/ 414:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getTranslation = void 0;
+const en = {
+    ui: {
+        awaitingPixelsRoll: "Awaiting Pixels roll...",
+    },
+};
+// Methods for accessing the translations
+const getValueAtPath = (path, object) => {
+    if (!object || typeof object === "string") {
+        return object;
+    }
+    if (path.length > 1) {
+        const nextPathElement = path.shift();
+        if (nextPathElement) {
+            return getValueAtPath(path, object[nextPathElement]);
+        }
+    }
+    else {
+        return object[path[0]];
+    }
+    return undefined;
+};
+const getTranslation = (key, lang = "en") => {
+    switch (lang) {
+        case "en": {
+            return getValueAtPath(key.split("."), en) || "";
+        }
+    }
+    return "";
+};
+exports.getTranslation = getTranslation;
+
+
+/***/ }),
+
+/***/ 613:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.RollRequest = void 0;
 /**
  * An object containing fields for each die type (d4, d6, d8, d10, d12, d20, d100 and dF for fudge dice),
  * listing how often that type of die should be rolled.
@@ -1212,86 +1347,167 @@ class RollRequest {
             parts.push(`${this.d12}DF`);
         }
         if (includeModifier && this.modifier) {
-            parts.push(`${modifierRegex}`);
+            parts.push(`${this.modifier}`);
         }
         return parts.join(separator);
     }
 }
 exports.RollRequest = RollRequest;
-const countDiceMatchingRegex = (rollParts, regex) => rollParts
-    .filter((rollPart) => regex.test(rollPart))
-    .map((rollPart) => {
-    var _a;
-    const matches = rollPart.match(regex);
-    return Number.parseInt(((_a = matches === null || matches === void 0 ? void 0 : matches.groups) === null || _a === void 0 ? void 0 : _a.count) || "0");
-})
-    .reduce((a, b) => a + b, 0);
-const d4Regex = /^(?<count>\d+)d4$/;
-const d6Regex = /^(?<count>\d+)d6$/;
-const d8Regex = /^(?<count>\d+)d8$/;
-const d10Regex = /^(?<count>\d+)d10$/;
-const d100Regex = /^(?<count>\d+)d100$/;
-const d12Regex = /^(?<count>\d+)d12$/;
-const d20Regex = /^(?<count>\d+)d20$/;
-const dFRegex = /^(?<count>\d+)dF$/;
-const modifierRegex = /^(?<count>-?\d+)$/;
-/**
- * A method for parsing the requested rolls into an object that is easier to handle.
- *
- * @param rollQuery the roll query, e.g. "3d6+3", "3d6%2B3", "1d20+9", "2d8+1d6+2", etc.
- * @returns an object listing how many of each possible dice should be rolled for this request
- */
-const parseRollRequest = (rollQuery) => {
-    const rollParts = extractRollParts(rollQuery);
-    const enabledForDice = (0, integration_utils_1.integrationEnabledForDice)();
-    const rollRequest = new RollRequest();
-    if (enabledForDice.d4) {
-        rollRequest.d4 = countDiceMatchingRegex(rollParts, d4Regex);
-    }
-    if (enabledForDice.d6) {
-        rollRequest.d6 = countDiceMatchingRegex(rollParts, d6Regex);
-    }
-    if (enabledForDice.d8) {
-        rollRequest.d8 = countDiceMatchingRegex(rollParts, d8Regex);
-    }
-    if (enabledForDice.d10) {
-        rollRequest.d10 = countDiceMatchingRegex(rollParts, d10Regex);
-    }
-    if (enabledForDice.d12) {
-        rollRequest.d12 = countDiceMatchingRegex(rollParts, d12Regex);
-    }
-    if (enabledForDice.d20) {
-        rollRequest.d20 = countDiceMatchingRegex(rollParts, d20Regex);
-    }
-    if (enabledForDice.d10 && enabledForDice.d00) {
-        rollRequest.d100 = countDiceMatchingRegex(rollParts, d100Regex);
-    }
-    rollRequest.modifier = countDiceMatchingRegex(rollParts, modifierRegex);
-    const unusedParts = rollParts
-        .filter((rollPart) => !(enabledForDice.d4 && d4Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.d6 && d6Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.d8 && d8Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.d10 && d10Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.d12 && d12Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.d20 && d20Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.d10 && enabledForDice.d00 && d100Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.dF && dFRegex.test(rollPart)))
-        .filter((rollPart) => !modifierRegex.test(rollPart));
-    if (unusedParts.length > 0) {
+
+
+/***/ }),
+
+/***/ 213:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.removeRollsExpectedNotification = exports.addRollsExpectedNotification = void 0;
+const integration_utils_1 = __webpack_require__(530);
+const translations_1 = __webpack_require__(414);
+let rollsExpectedNotification;
+const getDiceSvg = (svgClass, width, height) => {
+    const diceRollerGrids = unsafeWindow.document.getElementsByClassName("dice-roller__dice-grid");
+    if (diceRollerGrids.length === 0) {
         if ((0, integration_utils_1.isDebugEnabled)()) {
-            console.log({
-                description: "The roll query contained parts that could not be interpreted or dice types that are not currently enabled",
-                rollQuery,
-                rollParts,
-                rollRequest,
-                unusedParts,
-            });
+            console.log(`No dice roller grid found, so no svg with class ${svgClass} could be found.`);
         }
-        rollRequest.unusedParts = unusedParts.join("%2B");
+        return undefined;
     }
-    return rollRequest;
+    const svgs = diceRollerGrids[0].getElementsByClassName(svgClass);
+    if (svgs.length === 0) {
+        if ((0, integration_utils_1.isDebugEnabled)()) {
+            console.log(`No svg with class ${svgClass} could be found.`);
+        }
+        return undefined;
+    }
+    const svg = svgs[0].cloneNode(true);
+    svg.setAttribute("width", `${width}`);
+    svg.setAttribute("height", `${height}`);
+    return svg;
 };
-exports.parseRollRequest = parseRollRequest;
+const getD4Svg = () => getDiceSvg("dice-d4", 28, 18);
+const getD6Svg = () => getDiceSvg("dice-fab-d6", 26, 18);
+const getD8Svg = () => getDiceSvg("dice-fab-d8", 22, 18);
+const getD10Svg = () => getDiceSvg("dice-fab-d10", 28, 18);
+const getD12Svg = () => getDiceSvg("dice-fab-d12", 28, 18);
+const getD20Svg = () => getDiceSvg("dice-fab-20", 26, 18);
+const addRollsExpectedNotification = (rollRequest) => {
+    var _a;
+    const notificationParents = unsafeWindow.document.getElementsByClassName("dice-roll-history");
+    if (notificationParents.length === 0) {
+        if ((0, integration_utils_1.isDebugEnabled)()) {
+            console.log("No dice roll history found to which a notification can be added.");
+        }
+        return undefined;
+    }
+    const notificationTemplate = notificationParents[0].firstChild;
+    if (!notificationTemplate) {
+        if ((0, integration_utils_1.isDebugEnabled)()) {
+            console.log("The dice roll history is empty, no element can be cloned.", notificationParents[0]);
+        }
+        return undefined;
+    }
+    rollsExpectedNotification = notificationTemplate.cloneNode(true);
+    const titleRow = rollsExpectedNotification.firstChild;
+    // Change the title of the new element
+    const titleElement = titleRow.firstChild;
+    const titleText = (0, translations_1.getTranslation)("ui.awaitingPixelsRoll", "en");
+    titleElement.innerHTML = titleText;
+    // Remove the "Result" title from the titleRow
+    const resultTitleElement = titleRow.lastChild;
+    if (resultTitleElement) {
+        titleRow.removeChild(resultTitleElement);
+    }
+    // Set the expected rolls
+    const textRow = rollsExpectedNotification.children[1];
+    const mainText = textRow.firstChild;
+    mainText.innerHTML = rollRequest.stringify(false, ", ");
+    // Remove the "Result" element from the textRow
+    const resultElement = textRow.lastChild;
+    if (resultElement) {
+        textRow.removeChild(resultElement);
+    }
+    // Set the remaining rolls
+    const diceRollRow = rollsExpectedNotification.lastChild;
+    const diceRollParent = diceRollRow.getElementsByClassName("dice-roll-details__dice")[0];
+    const newDiceRollIndicators = [];
+    for (const key in rollRequest) {
+        if (!key.startsWith("_d")) {
+            continue;
+        }
+        const getter = Object.getOwnPropertyDescriptor(rollRequest, key);
+        if (getter === null || getter === void 0 ? void 0 : getter.value) {
+            const diceIndicator = diceRollParent.firstChild.cloneNode(true);
+            let svg;
+            switch (key) {
+                case "_d4": {
+                    svg = getD4Svg();
+                    break;
+                }
+                case "_d6": {
+                    svg = getD6Svg();
+                    break;
+                }
+                case "_d8": {
+                    svg = getD8Svg();
+                    break;
+                }
+                case "_d10": {
+                    svg = getD10Svg();
+                    break;
+                }
+                // TODO We don't yet have a case where d00s are expected
+                case "_d12": {
+                    svg = getD12Svg();
+                    break;
+                }
+                case "_d20": {
+                    svg = getD20Svg();
+                    break;
+                }
+                // TODO We don't yet have a case where dFs are expected
+                default: {
+                    console.error(`No svg for dice value ${key.substring(1)} known.`);
+                }
+            }
+            if (svg) {
+                const diceRollDetails = diceIndicator.firstChild;
+                diceRollDetails.removeChild(diceRollDetails.firstChild);
+                diceRollDetails.setAttribute("data-cy", `dice-roll-details-${key.substring(1)}-icon`);
+                ((_a = diceRollDetails.lastChild) === null || _a === void 0 ? void 0 : _a.lastChild).innerHTML =
+                    `${getter.value} x`;
+                diceRollDetails.append(svg);
+                newDiceRollIndicators.push(diceIndicator);
+            }
+        }
+    }
+    diceRollParent.replaceChildren(...newDiceRollIndicators);
+    notificationParents[0].insertBefore(rollsExpectedNotification, notificationTemplate);
+    return rollsExpectedNotification;
+};
+exports.addRollsExpectedNotification = addRollsExpectedNotification;
+const removeRollsExpectedNotification = (element = rollsExpectedNotification) => {
+    if (!element) {
+        if ((0, integration_utils_1.isDebugEnabled)()) {
+            console.log("There is no rolls expected notification to be removed.");
+        }
+        return;
+    }
+    const notificationParents = unsafeWindow.document.getElementsByClassName("dice-roll-history");
+    if (notificationParents.length === 0) {
+        if ((0, integration_utils_1.isDebugEnabled)()) {
+            console.log("No dice roll history found from which a notification can be removed.");
+        }
+    }
+    else {
+        if ((0, integration_utils_1.isDebugEnabled)()) {
+            console.log("About to remove the rolls expected notification...");
+        }
+        notificationParents[0].removeChild(element);
+    }
+};
+exports.removeRollsExpectedNotification = removeRollsExpectedNotification;
 
 
 /***/ })

@@ -1,7 +1,6 @@
 import { isDebugEnabled } from "./integration-utils";
 import { registerRollListener } from "./roll-handler";
-import type { RollRequest } from "./roll-parser";
-import type { DiceSize } from "./types";
+import type { DiceSize, RollRequest } from "./types";
 
 /**
  * Whether something is a critical roll or not.
@@ -304,6 +303,14 @@ export const mergeRollResults = (
 		...firstRollResult.raw_dice.parts,
 		...secondRollResult.raw_dice.parts,
 	];
+
+	if (isDebugEnabled()) {
+		console.log({
+			firstRollResult,
+			secondRollResult,
+			mergeRollResults,
+		});
+	}
 
 	return mergedResult;
 };
