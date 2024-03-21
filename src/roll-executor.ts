@@ -1,3 +1,4 @@
+import { isDebugEnabled } from "./integration-utils";
 import { registerRollListener } from "./roll-handler";
 import type { RollRequest } from "./roll-parser";
 import type { DiceSize } from "./types";
@@ -98,18 +99,24 @@ const expectResultForDice = async (
 	diceSize: DiceSize,
 	diceCount: number,
 ): Promise<{ diceSize: DiceSize; results: SingleRollResult[] }> => {
-	console.log(`Requested rolls of ${diceCount}d${diceSize}`);
+	if (isDebugEnabled()) {
+		console.log(`Requested rolls of ${diceCount}d${diceSize}`);
+	}
 	const expectedRolls: Promise<SingleRollResult>[] = new Array(diceCount);
 	expectedRolls.fill(
 		new Promise((resolve, reject) => {
-			console.log(`Waiting for a roll of 1d${diceSize}`);
+			if (isDebugEnabled()) {
+				console.log(`Waiting for a roll of 1d${diceSize}`);
+			}
 			registerRollListener({
 				diceSize,
 				callback: (rollEvent) => {
-					console.log({
-						description: "Roll event occurred",
-						rollEvent,
-					});
+					if (isDebugEnabled()) {
+						console.log({
+							description: "Roll event occurred",
+							rollEvent,
+						});
+					}
 					if (rollEvent.success) {
 						// TODO Do more with the result
 						resolve(rollEvent.face);

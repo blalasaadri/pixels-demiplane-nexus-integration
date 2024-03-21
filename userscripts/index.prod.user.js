@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.0.2
+// @version 0.0.3
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -26,97 +26,34 @@
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const integration = __importStar(__webpack_require__(530));
 const roll_executor_1 = __webpack_require__(787);
 const roll_parser_1 = __webpack_require__(329);
 const diceRollUrlRegex = /https:\/\/utils-api.demiplane.com\/dice-roll\?roll=(?<roll>.*)/;
-const integration = (() => {
-    const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/(?<gameSystem>[a-zA-Z0-9-]+)\/character-sheet\/(?<characterId>[a-z0-9-]+)/;
-    const characterSheetInfo = () => {
-        var _a, _b;
-        const characterSheetUrl = unsafeWindow.location.href;
-        const characterSheetMatches = characterSheetUrl.match(characterSheetUrlRegex);
-        const characterId = (_a = characterSheetMatches === null || characterSheetMatches === void 0 ? void 0 : characterSheetMatches.groups) === null || _a === void 0 ? void 0 : _a.characterId;
-        const gameSystem = (_b = characterSheetMatches === null || characterSheetMatches === void 0 ? void 0 : characterSheetMatches.groups) === null || _b === void 0 ? void 0 : _b.gameSystem;
-        return {
-            characterId,
-            gameSystem,
-        };
-    };
-    const integrationEnabledStorageName = "pixelsIntegrationEnabled";
-    const isEnabled = (characterId) => __awaiter(void 0, void 0, void 0, function* () {
-        let characterSheetId = characterId;
-        if (!characterSheetId) {
-            characterSheetId = characterSheetInfo().characterId || "";
-        }
-        let enabledForCharacter = false;
-        const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
-        if (localStorageEntryString) {
-            const localStorageEntry = JSON.parse(localStorageEntryString);
-            enabledForCharacter = localStorageEntry[characterSheetId] === "true";
-        }
-        return enabledForCharacter;
-    });
-    // @ts-ignore
-    unsafeWindow.isPixelsIntegrationEnabled = () => {
-        let integrationEnabledForCharacter = false;
-        const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
-        const { characterId } = characterSheetInfo();
-        if (enabledString && characterId) {
-            const enabledObject = JSON.parse(enabledString);
-            const characterEnabledInfo = enabledObject[characterId];
-            integrationEnabledForCharacter = characterEnabledInfo === "true";
-        }
-        return integrationEnabledForCharacter;
-    };
-    const toggleEnabled = (characterId) => __awaiter(void 0, void 0, void 0, function* () {
-        let characterSheetId = characterId;
-        if (!characterSheetId) {
-            characterSheetId = characterSheetInfo().characterId || "";
-        }
-        let enabledForCharacter = !isEnabled(characterId);
-        const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
-        if (localStorageEntryString) {
-            const localStorageEntry = JSON.parse(localStorageEntryString);
-            enabledForCharacter = localStorageEntry[characterSheetId] === "true";
-        }
-        return enabledForCharacter;
-    });
-    // @ts-ignore
-    unsafeWindow.togglePixelsItegrationEnabled = () => {
-        let integrationPreviouslyEnabledForCharacter = false;
-        const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
-        const { characterId } = characterSheetInfo();
-        const enabledObject = enabledString
-            ? JSON.parse(enabledString)
-            : {};
-        if (characterId) {
-            const characterEnabledInfo = enabledObject[characterId];
-            integrationPreviouslyEnabledForCharacter =
-                characterEnabledInfo === "true";
-            enabledObject[characterId] =
-                `${!integrationPreviouslyEnabledForCharacter}`;
-            unsafeWindow.localStorage.setItem(integrationEnabledStorageName, JSON.stringify(enabledObject));
-        }
-        return !integrationPreviouslyEnabledForCharacter;
-    };
-    return {
-        isEnabled,
-        toggleEnabled,
-        characterSheetInfo,
-    };
-})();
-const interceptors = [];
-let interceptor;
 // @ts-ignore
 if (!XMLHttpRequest.prototype.nativeOpen) {
     // Override the open function
@@ -147,21 +84,30 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
         // Create our custom "load" function
         const customSend = function (body) {
             // Check whether we're on a character sheet and if so, what the character's ID is
-            const { characterId } = integration.characterSheetInfo();
+            const { characterId, gameSystem } = integration.characterSheetInfo();
             integration.isEnabled(characterId || "").then((isEnabled) => {
+                var _a;
                 // @ts-ignore
                 const requestURL = this.requestURL;
+                const rollUrl = requestURL === null || requestURL === void 0 ? void 0 : requestURL.toString();
+                const rollUrlMatches = rollUrl.match(diceRollUrlRegex);
+                const rollCommand = (_a = rollUrlMatches === null || rollUrlMatches === void 0 ? void 0 : rollUrlMatches.groups) === null || _a === void 0 ? void 0 : _a.roll;
                 if (characterId &&
                     isEnabled &&
-                    diceRollUrlRegex.test(requestURL === null || requestURL === void 0 ? void 0 : requestURL.toString())) {
-                    // Do not send the request but instead request the results from our pixels dice
-                    console.log(`Received a dice roll request to ${requestURL}, overriding it.`);
-                    const { callback } = interceptor;
-                    // First, we wait for the response from either Pixels or virtual dice
-                    callback(requestURL === null || requestURL === void 0 ? void 0 : requestURL.toString())
+                    diceRollUrlRegex.test(requestURL === null || requestURL === void 0 ? void 0 : requestURL.toString()) &&
+                    rollCommand) {
+                    if (integration.isDebugEnabled()) {
+                        console.log(`Received a dice roll request to ${requestURL}, overriding it.`);
+                    }
+                    const rollRequest = (0, roll_parser_1.parseRollRequest)(rollCommand);
+                    console.log(`The Pixel integration is waiting for the following rolls: ${(0, roll_parser_1.stringifyRollRequest)(rollRequest)}`);
+                    // Do not send the request yet, but instead request the results from virtual dice or Pixels dice
+                    (0, roll_executor_1.expectRolls)(rollRequest, gameSystem)
                         .then((data) => {
                         // When we have received the response, we have to process it just a bit.
-                        console.log(`Received faked response with data ${JSON.stringify(data)}; ensuring that it is a JSON.`);
+                        if (integration.isDebugEnabled()) {
+                            console.log(`Received faked response with data ${JSON.stringify(data)}; ensuring that it is a JSON.`);
+                        }
                         let parsedData = data;
                         if (typeof data === "string") {
                             parsedData = JSON.parse(data);
@@ -173,7 +119,9 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
                         //  from the API. So instead, now that we actually have the value we'll send the request,
                         //  wait for a reply and then replace the response.
                         this.addEventListener("readystatechange", () => {
-                            console.log(`Setting the responseText to ${JSON.stringify(data)}`);
+                            if (integration.isDebugEnabled()) {
+                                console.log(`Setting the responseText to ${JSON.stringify(data)}`);
+                            }
                             // Now that we have processed the data, we set it as the response
                             Object.defineProperty(this, "responseText", {
                                 configurable: true,
@@ -198,31 +146,108 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
         XMLHttpRequest.prototype.send = customSend;
     })();
 }
-const main = () => {
-    interceptors.push({
-        callback: (rollUrl) => __awaiter(void 0, void 0, void 0, function* () {
-            var _a;
-            const { characterId, gameSystem } = integration.characterSheetInfo();
-            const rollUrlMatches = rollUrl.match(diceRollUrlRegex);
-            const rollCommand = (_a = rollUrlMatches === null || rollUrlMatches === void 0 ? void 0 : rollUrlMatches.groups) === null || _a === void 0 ? void 0 : _a.roll;
-            if (rollCommand) {
-                const parsedRollCommand = (0, roll_parser_1.parseRollRequest)(rollCommand);
-                const result = yield (0, roll_executor_1.expectRolls)(parsedRollCommand, gameSystem);
-                console.log({
-                    description: "Itercepting dice rolls",
-                    rollUrl,
-                    parsedRollCommand,
-                    gameSystem,
-                    characterSheetId: characterId,
-                    result,
-                });
-                return result;
-            }
-        }),
+
+
+/***/ }),
+
+/***/ 530:
+/***/ (function(__unused_webpack_module, exports) {
+
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
-    interceptor = interceptors[0];
 };
-main();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.isDebugEnabled = exports.toggleEnabled = exports.isEnabled = exports.characterSheetInfo = void 0;
+const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/(?<gameSystem>[a-zA-Z0-9-]+)\/character-sheet\/(?<characterId>[a-z0-9-]+)/;
+const characterSheetInfo = () => {
+    var _a, _b;
+    const characterSheetUrl = unsafeWindow.location.href;
+    const characterSheetMatches = characterSheetUrl.match(characterSheetUrlRegex);
+    const characterId = (_a = characterSheetMatches === null || characterSheetMatches === void 0 ? void 0 : characterSheetMatches.groups) === null || _a === void 0 ? void 0 : _a.characterId;
+    const gameSystem = (_b = characterSheetMatches === null || characterSheetMatches === void 0 ? void 0 : characterSheetMatches.groups) === null || _b === void 0 ? void 0 : _b.gameSystem;
+    return {
+        characterId,
+        gameSystem,
+    };
+};
+exports.characterSheetInfo = characterSheetInfo;
+const integrationEnabledStorageName = "pixelsIntegrationEnabled";
+const isEnabled = (characterId) => __awaiter(void 0, void 0, void 0, function* () {
+    let characterSheetId = characterId;
+    if (!characterSheetId) {
+        characterSheetId = characterSheetInfo().characterId || "";
+    }
+    let enabledForCharacter = false;
+    const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
+    if (localStorageEntryString) {
+        const localStorageEntry = JSON.parse(localStorageEntryString);
+        enabledForCharacter = localStorageEntry[characterSheetId] === "true";
+    }
+    return enabledForCharacter;
+});
+exports.isEnabled = isEnabled;
+// @ts-ignore
+unsafeWindow.isPixelsIntegrationEnabled = () => {
+    let integrationEnabledForCharacter = false;
+    const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
+    const { characterId } = characterSheetInfo();
+    if (enabledString && characterId) {
+        const enabledObject = JSON.parse(enabledString);
+        const characterEnabledInfo = enabledObject[characterId];
+        integrationEnabledForCharacter = characterEnabledInfo === "true";
+    }
+    return integrationEnabledForCharacter;
+};
+const toggleEnabled = (characterId) => __awaiter(void 0, void 0, void 0, function* () {
+    let characterSheetId = characterId;
+    if (!characterSheetId) {
+        characterSheetId = characterSheetInfo().characterId || "";
+    }
+    let enabledForCharacter = !isEnabled(characterId);
+    const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
+    if (localStorageEntryString) {
+        const localStorageEntry = JSON.parse(localStorageEntryString);
+        enabledForCharacter = localStorageEntry[characterSheetId] === "true";
+    }
+    return enabledForCharacter;
+});
+exports.toggleEnabled = toggleEnabled;
+// @ts-ignore
+unsafeWindow.togglePixelsItegrationEnabled = () => {
+    let integrationPreviouslyEnabledForCharacter = false;
+    const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
+    const { characterId } = characterSheetInfo();
+    const enabledObject = enabledString
+        ? JSON.parse(enabledString)
+        : {};
+    if (characterId) {
+        const characterEnabledInfo = enabledObject[characterId];
+        integrationPreviouslyEnabledForCharacter = characterEnabledInfo === "true";
+        enabledObject[characterId] = `${!integrationPreviouslyEnabledForCharacter}`;
+        unsafeWindow.localStorage.setItem(integrationEnabledStorageName, JSON.stringify(enabledObject));
+    }
+    return !integrationPreviouslyEnabledForCharacter;
+};
+const integrationDebugStorageName = "pixelsIntegrationDebug";
+const isDebugEnabled = () => {
+    const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationDebugStorageName);
+    return localStorageEntryString === "true";
+};
+exports.isDebugEnabled = isDebugEnabled;
+// @ts-ignore
+unsafeWindow.togglePixelsItegrationDebug = () => {
+    const enabledString = unsafeWindow.localStorage.getItem(integrationDebugStorageName);
+    const integrationDebugPreviouslyEnabled = enabledString === "true";
+    unsafeWindow.localStorage.setItem(integrationDebugStorageName, `${!integrationDebugPreviouslyEnabled}`);
+    return !integrationDebugPreviouslyEnabled;
+};
 
 
 /***/ }),
@@ -242,6 +267,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.expectRolls = exports.CritResult = void 0;
+const integration_utils_1 = __webpack_require__(530);
 const roll_handler_1 = __webpack_require__(952);
 /**
  * Whether something is a critical roll or not.
@@ -256,17 +282,23 @@ var CritResult;
     CritResult[CritResult["CRITICAL_SUCCESS"] = 2] = "CRITICAL_SUCCESS";
 })(CritResult || (exports.CritResult = CritResult = {}));
 const expectResultForDice = (diceSize, diceCount) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log(`Requested rolls of ${diceCount}d${diceSize}`);
+    if ((0, integration_utils_1.isDebugEnabled)()) {
+        console.log(`Requested rolls of ${diceCount}d${diceSize}`);
+    }
     const expectedRolls = new Array(diceCount);
     expectedRolls.fill(new Promise((resolve, reject) => {
-        console.log(`Waiting for a roll of 1d${diceSize}`);
+        if ((0, integration_utils_1.isDebugEnabled)()) {
+            console.log(`Waiting for a roll of 1d${diceSize}`);
+        }
         (0, roll_handler_1.registerRollListener)({
             diceSize,
             callback: (rollEvent) => {
-                console.log({
-                    description: "Roll event occurred",
-                    rollEvent,
-                });
+                if ((0, integration_utils_1.isDebugEnabled)()) {
+                    console.log({
+                        description: "Roll event occurred",
+                        rollEvent,
+                    });
+                }
                 if (rollEvent.success) {
                     // TODO Do more with the result
                     resolve(rollEvent.face);
@@ -854,11 +886,44 @@ registerRollCancelers();
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.parseRollRequest = void 0;
+exports.parseRollRequest = exports.stringifyRollRequest = void 0;
 const extractRollParts = (rollQuery) => {
     var _a, _b, _c;
     return (_c = (_b = (_a = rollQuery === null || rollQuery === void 0 ? void 0 : rollQuery.replace(/%2B/g, "+")) === null || _a === void 0 ? void 0 : _a.replace(/-/g, "+-")) === null || _b === void 0 ? void 0 : _b.replace(/\++/g, "+")) === null || _c === void 0 ? void 0 : _c.split("+");
 };
+const stringifyRollRequest = (rollRequest) => {
+    const parts = [];
+    if (rollRequest.d4) {
+        parts.push(`${rollRequest.d4}d4`);
+    }
+    if (rollRequest.d6) {
+        parts.push(`${rollRequest.d6}d6`);
+    }
+    if (rollRequest.d8) {
+        parts.push(`${rollRequest.d8}d8`);
+    }
+    if (rollRequest.d100) {
+        parts.push(`${rollRequest.d10 + rollRequest.d100}d10`);
+        parts.push(`${rollRequest.d100}d00`);
+    }
+    else if (rollRequest.d10) {
+        parts.push(`${rollRequest.d10}d10`);
+    }
+    if (rollRequest.d12) {
+        parts.push(`${rollRequest.d12}d12`);
+    }
+    if (rollRequest.d20) {
+        parts.push(`${rollRequest.d20}d20`);
+    }
+    if (rollRequest.dF) {
+        parts.push(`${rollRequest.d12}dF`);
+    }
+    if (rollRequest.modifier) {
+        parts.push(`${rollRequest.modifier}`);
+    }
+    return parts.join("+");
+};
+exports.stringifyRollRequest = stringifyRollRequest;
 const countDiceMatchingRegex = (rollParts, regex) => rollParts
     .filter((rollPart) => regex.test(rollPart))
     .map((rollPart) => {

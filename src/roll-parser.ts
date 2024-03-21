@@ -23,6 +23,38 @@ export interface RollRequest {
 	modifier: number;
 }
 
+export const stringifyRollRequest = (rollRequest: RollRequest): string => {
+	const parts: string[] = [];
+	if (rollRequest.d4) {
+		parts.push(`${rollRequest.d4}d4`);
+	}
+	if (rollRequest.d6) {
+		parts.push(`${rollRequest.d6}d6`);
+	}
+	if (rollRequest.d8) {
+		parts.push(`${rollRequest.d8}d8`);
+	}
+	if (rollRequest.d100) {
+		parts.push(`${rollRequest.d10 + rollRequest.d100}d10`);
+		parts.push(`${rollRequest.d100}d00`);
+	} else if (rollRequest.d10) {
+		parts.push(`${rollRequest.d10}d10`);
+	}
+	if (rollRequest.d12) {
+		parts.push(`${rollRequest.d12}d12`);
+	}
+	if (rollRequest.d20) {
+		parts.push(`${rollRequest.d20}d20`);
+	}
+	if (rollRequest.dF) {
+		parts.push(`${rollRequest.d12}dF`);
+	}
+	if (rollRequest.modifier) {
+		parts.push(`${rollRequest.modifier}`);
+	}
+	return parts.join("+");
+};
+
 const countDiceMatchingRegex = (rollParts: string[], regex: RegExp): number =>
 	rollParts
 		.filter((rollPart) => regex.test(rollPart))
