@@ -274,6 +274,40 @@ export const expectRolls = async (
 	return result;
 };
 
+export const mergeRollResults = (
+	firstRollResult: RollRequestResult,
+	secondRollResult: RollRequestResult,
+): RollRequestResult => {
+	const mergedResult: RollRequestResult = {
+		...firstRollResult,
+	};
+	// Update the total
+	mergedResult.total += secondRollResult.total;
+
+	// Update the crit info
+	if (
+		firstRollResult.crit === CritResult.CRITICAL_SUCCESS ||
+		secondRollResult.crit === CritResult.CRITICAL_SUCCESS
+	) {
+		mergedResult.crit = CritResult.CRITICAL_SUCCESS;
+	} else if (
+		firstRollResult.crit === CritResult.CRITICAL_FAILURE ||
+		secondRollResult.crit === CritResult.CRITICAL_FAILURE
+	) {
+		mergedResult.crit = CritResult.CRITICAL_FAILURE;
+	} else {
+		mergedResult.crit = CritResult.NO_CRIT;
+	}
+
+	// Set the new parts in the merged result
+	mergedResult.raw_dice.parts = [
+		...firstRollResult.raw_dice.parts,
+		...secondRollResult.raw_dice.parts,
+	];
+
+	return mergedResult;
+};
+
 const handleNumericDiceResults = (
 	generatorDiceSize: DiceSize,
 	critSuccessPredicate?: (results: SingleRollResult[]) => boolean,

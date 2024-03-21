@@ -1,9 +1,9 @@
 import * as integration from "./integration-utils";
-import { expectRolls } from "./roll-executor";
-import { parseRollRequest, stringifyRollRequest } from "./roll-parser";
+import { expectRolls, mergeRollResults } from "./roll-executor";
+import { parseRollRequest } from "./roll-parser";
 
 const diceRollUrlRegex =
-	/https:\/\/utils-api.demiplane.com\/dice-roll\?roll=(?<roll>.*)/;
+	/^https:\/\/utils-api.demiplane.com\/dice-roll\?roll=(?<roll>[^&]*)$/;
 
 // @ts-ignore
 if (!XMLHttpRequest.prototype.nativeOpen) {
@@ -24,6 +24,11 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 			// When the request is opened, we want to save the URL in a place where it is retrievable during the send request.
 			// @ts-ignore
 			this.requestURL = url;
+			// @ts-ignore
+			if (this.pixelsRoll === undefined) {
+				// @ts-ignore
+				this.pixelsRoll = diceRollUrlRegex.test(url.toString());
+			}
 
 			// After that, things can proceed as normal for the moment.
 			if (async === undefined) {
@@ -53,18 +58,15 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 
 			integration.isEnabled(characterId || "").then((isEnabled) => {
 				// @ts-ignore
+				const useIntegration = this.pixelsRoll;
+				// @ts-ignore
 				const requestURL: string | URL = this.requestURL;
 
 				const rollUrl = requestURL?.toString();
 				const rollUrlMatches = rollUrl.match(diceRollUrlRegex);
 				const rollCommand = rollUrlMatches?.groups?.roll;
 
-				if (
-					characterId &&
-					isEnabled &&
-					diceRollUrlRegex.test(requestURL?.toString()) &&
-					rollCommand
-				) {
+				if (useIntegration && characterId && isEnabled && rollCommand) {
 					if (integration.isDebugEnabled()) {
 						console.log(
 							`Received a dice roll request to ${requestURL}, overriding it.`,
@@ -72,52 +74,80 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 					}
 
 					const rollRequest = parseRollRequest(rollCommand);
-					console.log(
-						`The Pixel integration is waiting for the following rolls: ${stringifyRollRequest(
-							rollRequest,
-						)}`,
-					);
 
-					// Do not send the request yet, but instead request the results from virtual dice or Pixels dice
-					expectRolls(rollRequest, gameSystem)
-						.then((data) => {
-							// When we have received the response, we have to process it just a bit.
-							if (integration.isDebugEnabled()) {
-								console.log(
-									`Received faked response with data ${JSON.stringify(
-										data,
-									)}; ensuring that it is a JSON.`,
-								);
-							}
-							let parsedData = data;
-							if (typeof data === "string") {
-								parsedData = JSON.parse(data);
-							}
-							return parsedData;
-						})
-						.then((data) => {
-							// I haven't yet found a way to fully simulate sending and then receiving a response
-							//  from the API. So instead, now that we actually have the value we'll send the request,
-							//  wait for a reply and then replace the response.
-							this.addEventListener("readystatechange", () => {
+					const sendRollRequestToDemiplane = (rollQuery?: string) => {
+						const newRequestURL = `https://utils-api.demiplane.com/dice-roll?roll=${
+							rollQuery || 0
+						}`;
+						// @ts-ignore
+						this.pixelsRoll = false;
+						this.open("GET", newRequestURL);
+						// @ts-ignore
+						this.nativeSend(body);
+					};
+
+					if (!rollRequest.containsRolls()) {
+						console.log("The Pixel integration is not waiting for any rolls.");
+						sendRollRequestToDemiplane(rollCommand);
+					} else {
+						console.log(
+							`The Pixel integration is waiting for the following rolls: '${rollRequest.stringify(
+								false,
+							)}'`,
+						);
+
+						// Do not send the request yet, but instead request the results from virtual dice or Pixels dice
+						expectRolls(rollRequest, gameSystem)
+							.then((data) => {
+								// When we have received the response, we have to process it just a bit.
 								if (integration.isDebugEnabled()) {
 									console.log(
-										`Setting the responseText to ${JSON.stringify(data)}`,
+										`Received faked response with data ${JSON.stringify(
+											data,
+										)}; ensuring that it is a JSON.`,
 									);
 								}
+								let parsedData = data;
+								if (typeof data === "string") {
+									parsedData = JSON.parse(data);
+								}
+								return parsedData;
+							})
+							.then((localResponseBody) => {
+								// I haven't yet found a way to fully simulate sending and then receiving a response
+								//  from the API. So instead, now that we actually have the value we'll send the request,
+								//  wait for a reply and then replace the response.
+								this.addEventListener("readystatechange", () => {
+									if (this.readyState === XMLHttpRequest.DONE) {
+										const remoteResponseBody = JSON.parse(this.responseText);
+										const mergedResponseBody = mergeRollResults(
+											localResponseBody,
+											remoteResponseBody,
+										);
 
-								// Now that we have processed the data, we set it as the response
-								Object.defineProperty(this, "responseText", {
-									configurable: true,
-									value: JSON.stringify(data),
+										if (integration.isDebugEnabled()) {
+											console.log({
+												description: "Setting body of response",
+												readyState: this.readyState,
+												remoteResponseBody,
+												localResponseBody,
+												mergedResponseBody,
+											});
+										}
+
+										// Now that we have processed the data, we set it as the response
+										Object.defineProperty(this, "responseText", {
+											configurable: true,
+											value: JSON.stringify(mergedResponseBody),
+										});
+									}
 								});
+								sendRollRequestToDemiplane(rollRequest.unusedParts);
+							})
+							.catch((e) => {
+								console.error(`Interceptor failed for url ${requestURL}.`, e);
 							});
-							// @ts-ignore
-							this.nativeSend(body);
-						})
-						.catch((e) => {
-							console.error(`Interceptor failed for url ${requestURL}.`, e);
-						});
+					}
 				} else {
 					// Either this is not a dice roll request, or the integration is not enabled. Proceed as normal.
 					// @ts-ignore

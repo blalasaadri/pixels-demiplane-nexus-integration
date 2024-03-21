@@ -1,1 +1,183 @@
-= pixels-demiplane-userscript
+= Unofficial Pixels integration for Demiplane Nexus
+:icons: font
+:source-highlighter: highlight.js
+
+This project aims to integrate the Pixels electronic dice (https://www.gamewithpixels.com/[]) with https://app.demiplane.com/home[Demiplanes] character sheets for TTRPGs.
+
+Demiplane offers character sheets for a range of TTRPG system, including the option to roll simulated dice on those character sheets.
+
+Pixels electronic dice are physical dice that can (among other things) establish a Bluetoot LE connection to an application running on a computer, tablet, or smartphone.
+When that connection is established, they can send roll results to whatever application they are connected to.
+
+By combining the two projects, we can have digital character sheets for a number of TTRPG systems, roll physical dice for whatever roll is happening and the character sheet will handle any calculations required for the roll.
+
+== Requirements
+This integration has a few requirements to work.
+
+=== Supported browsers
+The following browsers are supported by the integration:
+
+- https://www.google.com/chrome/[Google Chrome]
+- https://www.chromium.org/getting-involved/download-chromium/[Chromium]
+- https://www.microsoft.com/en-us/edge[Microsoft Edge]
+
+[NOTE]
+====
+The integration will **not work on Firefox or Safari**, since neither of those support the experimental https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API[Web Bluetooth API].
+
+This isn't likely to change any time soon.
+The specification draft is handled by the https://www.w3.org/community/web-bluetooth/[W3C Web Bluetooth Community Group] and a number of concerns have been raised about it over the years.
+Specifically, Mozilla has decided not to implement Web Bluetooth in Firefox (see a discussion about the issue https://bugzilla.mozilla.org/show_bug.cgi?id=674737[here], a statement about their position https://mozilla.github.io/standards-positions/#web-bluetooth[here]) and Apple has decided against implementing in Webkit (which powers Safari) for security reasons (see a discussion about it https://bugs.webkit.org/show_bug.cgi?id=101034[here] their stance on https://webkit.org/tracking-prevention/#anti-fingerprinting[Anti-Fingerprinting]).
+====
+
+=== An account with Demiplane
+To use Demiplane Nexus, you must register for an account with them.
+Both free and paid accounts are supported by this integration.
+
+=== Pixels dice
+To use the integration, you should have at least one Pixels die.
+Pixels dice are available as:
+
+- d4
+- d6 (both with number and pipped)
+- d8
+- d10
+- d00 (also sometimes called D%s or _percentile dice_)
+- d12
+- d20
+- Fudge Dice (sometimes called _dF_ for short)
+
+[#tampermonkey]
+=== Tampermonkey (or another browser plugin which supports userscripts)
+The integration is built as a so called userscript.
+
+This means that you need a browser extension such as https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo[Tampermonkey], which will inject the userscript into a suitable website (in this case: a character sheet on Demiplane Nexus).
+
+== Supported game systems on Demiplane
+The integration has built to be usable for any game system offered by Demiplane.
+It has been successfully tested with the following systems:
+
+- Avatar Legends
+- Daggerheart (including limited critical roll handling)
+- Pathfinder 2E (including limited critical roll handling)
+
+== How to install the integration
+
+Open the URL https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/userscripts/index.prod.user.js[] in a <<Supported browsers, supported browser>> with a <<tampermonkey, plugin such as Tampermonkey>> installed.
+You will be prompted to install the userscript in Tampermonkey.
+
+IMPORTANT: If you had a character sheet open on Demiplane, you will have to reload that page after installing the userscript.
+
+=== Enabling bluetooth in your browser
+Before using the integration, you have to ensure that the Web Bluetooth API is enabled in your browser.
+
+To do so, open the <<Supported Browsers, supported browser>> you want to use and go to link:chrome://flags/#enable-web-bluetooth-new-permissions-backend[chrome://flags/#enable-web-bluetooth-new-permissions-backend] and ensure that the value is set to `Enabled`.
+
+On Linux, you will have to do the same with link:chrome://flags/#enable-web-bluetooth[chrome://flags/#enable-web-bluetooth].
+
+//== How to use the integration
+//TODO
+//
+//=== Connecting Pixels dice
+//TODO
+//
+//=== Enabling and disabling the integration for certain dice sizes
+//TODO
+
+== Testing the integration
+The integration comes with a number of commands available in the browsers https://developer.chrome.com/docs/devtools/open[DevTools].
+To use them, open the DevTools in the browser tab in which you have your character sheet open.
+
+Then select the tab `Console` in the DevTools.
+
+=== Basic operations for the integration
+
+The integration can be enabled and disabled via console commands.
+
+You have the following related commands available to you in the browser console:
+
+[horizontal]
+`isPixelsIntegrationEnabled()`:: Will return `true` if the integration is enabled or `false` if it isn't. By default it is `true` after it is installed.
+`togglePixelsItegrationEnabled()`:: Will switch the integration on or off. Will return `true` if the integration has been switched on, and `false` if it has been switched off.
+`togglePixelsItegrationDebug()`:: Will switch the integrations debug mode on or off. Will return `true` if the debugging mode has been switched on, and `false` if it has been switched off.
+
+=== Rolling virtual dice
+If you don't (yet) have (enough) Pixels dice but want to test the integration nevertheless, there is a way to roll so called virtual dice instead.
+These don't rely on the Demiplane rolling mechanism but instead do the same thing an actual Pixels die would do.
+
+You have the following related commands available to you in the browser console:
+
+[horizontal]
+`rollVirtualD4(<count>)`:: Used to roll a single d4.
+`rollVirtualD6(<count>)`:: Used to roll a single d6.
+`rollVirtualD8(<count>)`:: Used to roll a single d8.
+`rollVirtualD10(<count>)`:: Used to roll a single d10.
+`rollVirtualD00(<count>)`:: Used to roll a single d00 (percentile die).
+`rollVirtualD12(<count>)`:: Used to roll a single d12.
+`rollVirtualD20(<count>)`:: Used to roll a single d20.
+`rollVirtualDF(<count>)`:: Used to roll a single dF (fudge die).
+
+The `<count>` parameter is optional and can be used to define the number of dice of that type to be rolled.
+By default (if no value or a value smaller than 1 is given) a single die is rolled.
+
+.Examples for rolling virtual dice
+[source,js]
+----
+// Roll 1d6
+rollVirtualD6()
+// Output:
+[
+    {
+        "success": true,
+        "diceSize": 6,
+        "face": 2,
+        "dieType": "d6",
+        "dieColorway": "virtual",
+        "dieName": "Virtual d6",
+        "dieId": -6
+    }
+]
+
+// Roll 2d20
+rollVirtualD20(2)
+// Output:
+[{
+        "success": true,
+        "diceSize": 20,
+        "face": 4,
+        "dieType": "d20",
+        "dieColorway": "virtual",
+        "dieName": "Virtual d20",
+        "dieId": -20
+    },
+    {
+        "success": true,
+        "diceSize": 20,
+        "face": 2,
+        "dieType": "d20",
+        "dieColorway": "virtual",
+        "dieName": "Virtual d20",
+        "dieId": -20
+    }
+]
+----
+
+=== Enabling and disabling specific die types
+Not every user will have each type of Pixels die available. (E.g. many people only get d20s.)
+For that purpose, you can enable and disable the integration for specific dice types.
+
+You have the following related commands available to you in the browser console:
+
+[horizontal]
+`enablePixelsIntegrationForDieType(type)`:: Enable a specific die type for the integration.
+`disablePixelsIntegrationForDieType(type)`:: Disable a specific die type for the integration.
+
+The possible types are:
+[horizontal]
+d4:: `'d4'`
+d6:: `'d6'` or `'d6pipped'` (both enable both numbered and pipped d6s)
+d8:: `'d8'`
+d10:: `'d10'`
+d00:: `'d00'`
+d20:: `'d20'`
+fudge dice:: `'dF'` or `'d6fudge'`

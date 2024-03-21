@@ -193,7 +193,7 @@ const handleDieRolled = (
 		}
 	}
 	let rollEvent: RollEvent;
-	if (listener && diceSize) {
+	if (diceSize) {
 		rollEvent = {
 			success: true,
 			diceSize,
@@ -203,10 +203,6 @@ const handleDieRolled = (
 			dieName: dieName,
 			dieId: dieId,
 		};
-		listener.callback(rollEvent);
-
-		// @ts-ignore
-		unsafeWindow.expectedRolls = listExpectedRolls();
 	} else {
 		rollEvent = {
 			success: false,
@@ -214,48 +210,142 @@ const handleDieRolled = (
 			dieType: "unknown",
 		};
 	}
+	if (listener && rollEvent.success) {
+		listener.callback(rollEvent);
+
+		// @ts-ignore
+		unsafeWindow.expectedRolls = listExpectedRolls();
+	}
 	return rollEvent;
 };
 
 const registerVirtualRollers = () => {
-	const rollVirtualD4 = (): RollEvent => {
-		const randomFace = Math.round(Math.random() * 4) + 1;
-		return handleDieRolled("d4", randomFace, "virtual", "Virtual d4", -4);
+	const rollVirtualD4 = (count = 1): RollEvent[] => {
+		const cleanCount = Math.max(count, 1);
+		const results: RollEvent[] = new Array(cleanCount);
+		for (let i = 0; i < cleanCount; i++) {
+			const randomFace = Math.round(Math.random() * 4) + 1;
+			results[i] = handleDieRolled(
+				"d4",
+				randomFace,
+				"virtual",
+				"Virtual d4",
+				-4,
+			);
+		}
+		return results;
 	};
 
-	const rollVirtualD6 = (): RollEvent => {
-		const randomFace = Math.round(Math.random() * 6) + 1;
-		return handleDieRolled("d6", randomFace, "virtual", "Virtual d6", -6);
+	const rollVirtualD6 = (count = 1): RollEvent[] => {
+		const cleanCount = Math.max(count, 1);
+		const results: RollEvent[] = new Array(cleanCount);
+		for (let i = 0; i < cleanCount; i++) {
+			const randomFace = Math.round(Math.random() * 6) + 1;
+			results[i] = handleDieRolled(
+				"d6",
+				randomFace,
+				"virtual",
+				"Virtual d6",
+				-6,
+			);
+		}
+		return results;
 	};
 
-	const rollVirtualD8 = (): RollEvent => {
-		const randomFace = Math.round(Math.random() * 8) + 1;
-		return handleDieRolled("d8", randomFace, "virtual", "Virtual d8", -8);
+	const rollVirtualD8 = (count = 1): RollEvent[] => {
+		const cleanCount = Math.max(count, 1);
+		const results: RollEvent[] = new Array(cleanCount);
+		for (let i = 0; i < cleanCount; i++) {
+			const randomFace = Math.round(Math.random() * 8) + 1;
+			results[i] = handleDieRolled(
+				"d8",
+				randomFace,
+				"virtual",
+				"Virtual d8",
+				-8,
+			);
+		}
+		return results;
 	};
 
-	const rollVirtualD10 = (): RollEvent => {
-		const randomFace = Math.round(Math.random() * 10);
-		return handleDieRolled("d10", randomFace, "virtual", "Virtual d10", -10);
+	const rollVirtualD10 = (count = 1): RollEvent[] => {
+		const cleanCount = Math.max(count, 1);
+		const results: RollEvent[] = new Array(cleanCount);
+		for (let i = 0; i < cleanCount; i++) {
+			const randomFace = Math.round(Math.random() * 10);
+			results[i] = handleDieRolled(
+				"d10",
+				randomFace,
+				"virtual",
+				"Virtual d10",
+				-10,
+			);
+		}
+		return results;
 	};
 
-	const rollVirtualD00 = (): RollEvent => {
-		const randomFace = Math.round(Math.random() * 10) * 10;
-		return handleDieRolled("d00", randomFace, "virtual", "Virtual d00", -100);
+	const rollVirtualD00 = (count = 1): RollEvent[] => {
+		const cleanCount = Math.max(count, 1);
+		const results: RollEvent[] = new Array(cleanCount);
+		for (let i = 0; i < cleanCount; i++) {
+			const randomFace = Math.round(Math.random() * 10) * 10;
+			results[i] = handleDieRolled(
+				"d00",
+				randomFace,
+				"virtual",
+				"Virtual d00",
+				-100,
+			);
+		}
+		return results;
 	};
 
-	const rollVirtualD12 = (): RollEvent => {
-		const randomFace = Math.round(Math.random() * 12) + 1;
-		return handleDieRolled("d12", randomFace, "virtual", "Virtual d12", -12);
+	const rollVirtualD12 = (count = 1): RollEvent[] => {
+		const cleanCount = Math.max(count, 1);
+		const results: RollEvent[] = new Array(cleanCount);
+		for (let i = 0; i < cleanCount; i++) {
+			const randomFace = Math.round(Math.random() * 12) + 1;
+			results[i] = handleDieRolled(
+				"d12",
+				randomFace,
+				"virtual",
+				"Virtual d12",
+				-12,
+			);
+		}
+		return results;
 	};
 
-	const rollVirtualD20 = (): RollEvent => {
-		const randomFace = Math.round(Math.random() * 20) + 1;
-		return handleDieRolled("d20", randomFace, "virtual", "Virtual d20", -20);
+	const rollVirtualD20 = (count = 1): RollEvent[] => {
+		const cleanCount = Math.max(count, 1);
+		const results: RollEvent[] = new Array(cleanCount);
+		for (let i = 0; i < cleanCount; i++) {
+			const randomFace = Math.round(Math.random() * 20) + 1;
+			results[i] = handleDieRolled(
+				"d20",
+				randomFace,
+				"virtual",
+				"Virtual d20",
+				-20,
+			);
+		}
+		return results;
 	};
 
-	const rollVirtualDF = (): RollEvent => {
-		const randomFace = Math.round(Math.random() * 2) - 1;
-		return handleDieRolled("d6fudge", randomFace, "virtual", "Virtual dF", -3);
+	const rollVirtualDF = (count = 1): RollEvent[] => {
+		const cleanCount = Math.max(count, 1);
+		const results: RollEvent[] = new Array(cleanCount);
+		for (let i = 0; i < cleanCount; i++) {
+			const randomFace = Math.round(Math.random() * 2) - 1;
+			results[i] = handleDieRolled(
+				"d6fudge",
+				randomFace,
+				"virtual",
+				"Virtual dF",
+				-3,
+			);
+		}
+		return results;
 	};
 
 	// @ts-ignore

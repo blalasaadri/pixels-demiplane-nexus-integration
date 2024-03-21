@@ -53,7 +53,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const integration = __importStar(__webpack_require__(530));
 const roll_executor_1 = __webpack_require__(787);
 const roll_parser_1 = __webpack_require__(329);
-const diceRollUrlRegex = /https:\/\/utils-api.demiplane.com\/dice-roll\?roll=(?<roll>.*)/;
+const diceRollUrlRegex = /^https:\/\/utils-api.demiplane.com\/dice-roll\?roll=(?<roll>[^&]*)$/;
 // @ts-ignore
 if (!XMLHttpRequest.prototype.nativeOpen) {
     // Override the open function
@@ -65,6 +65,11 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
             // When the request is opened, we want to save the URL in a place where it is retrievable during the send request.
             // @ts-ignore
             this.requestURL = url;
+            // @ts-ignore
+            if (this.pixelsRoll === undefined) {
+                // @ts-ignore
+                this.pixelsRoll = diceRollUrlRegex.test(url.toString());
+            }
             // After that, things can proceed as normal for the moment.
             if (async === undefined) {
                 // @ts-ignore
@@ -88,52 +93,74 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
             integration.isEnabled(characterId || "").then((isEnabled) => {
                 var _a;
                 // @ts-ignore
+                const useIntegration = this.pixelsRoll;
+                // @ts-ignore
                 const requestURL = this.requestURL;
                 const rollUrl = requestURL === null || requestURL === void 0 ? void 0 : requestURL.toString();
                 const rollUrlMatches = rollUrl.match(diceRollUrlRegex);
                 const rollCommand = (_a = rollUrlMatches === null || rollUrlMatches === void 0 ? void 0 : rollUrlMatches.groups) === null || _a === void 0 ? void 0 : _a.roll;
-                if (characterId &&
-                    isEnabled &&
-                    diceRollUrlRegex.test(requestURL === null || requestURL === void 0 ? void 0 : requestURL.toString()) &&
-                    rollCommand) {
+                if (useIntegration && characterId && isEnabled && rollCommand) {
                     if (integration.isDebugEnabled()) {
                         console.log(`Received a dice roll request to ${requestURL}, overriding it.`);
                     }
                     const rollRequest = (0, roll_parser_1.parseRollRequest)(rollCommand);
-                    console.log(`The Pixel integration is waiting for the following rolls: ${(0, roll_parser_1.stringifyRollRequest)(rollRequest)}`);
-                    // Do not send the request yet, but instead request the results from virtual dice or Pixels dice
-                    (0, roll_executor_1.expectRolls)(rollRequest, gameSystem)
-                        .then((data) => {
-                        // When we have received the response, we have to process it just a bit.
-                        if (integration.isDebugEnabled()) {
-                            console.log(`Received faked response with data ${JSON.stringify(data)}; ensuring that it is a JSON.`);
-                        }
-                        let parsedData = data;
-                        if (typeof data === "string") {
-                            parsedData = JSON.parse(data);
-                        }
-                        return parsedData;
-                    })
-                        .then((data) => {
-                        // I haven't yet found a way to fully simulate sending and then receiving a response
-                        //  from the API. So instead, now that we actually have the value we'll send the request,
-                        //  wait for a reply and then replace the response.
-                        this.addEventListener("readystatechange", () => {
-                            if (integration.isDebugEnabled()) {
-                                console.log(`Setting the responseText to ${JSON.stringify(data)}`);
-                            }
-                            // Now that we have processed the data, we set it as the response
-                            Object.defineProperty(this, "responseText", {
-                                configurable: true,
-                                value: JSON.stringify(data),
-                            });
-                        });
+                    const sendRollRequestToDemiplane = (rollQuery) => {
+                        const newRequestURL = `https://utils-api.demiplane.com/dice-roll?roll=${rollQuery || 0}`;
+                        // @ts-ignore
+                        this.pixelsRoll = false;
+                        this.open("GET", newRequestURL);
                         // @ts-ignore
                         this.nativeSend(body);
-                    })
-                        .catch((e) => {
-                        console.error(`Interceptor failed for url ${requestURL}.`, e);
-                    });
+                    };
+                    if (!rollRequest.containsRolls()) {
+                        console.log("The Pixel integration is not waiting for any rolls.");
+                        sendRollRequestToDemiplane(rollCommand);
+                    }
+                    else {
+                        console.log(`The Pixel integration is waiting for the following rolls: '${rollRequest.stringify(false)}'`);
+                        // Do not send the request yet, but instead request the results from virtual dice or Pixels dice
+                        (0, roll_executor_1.expectRolls)(rollRequest, gameSystem)
+                            .then((data) => {
+                            // When we have received the response, we have to process it just a bit.
+                            if (integration.isDebugEnabled()) {
+                                console.log(`Received faked response with data ${JSON.stringify(data)}; ensuring that it is a JSON.`);
+                            }
+                            let parsedData = data;
+                            if (typeof data === "string") {
+                                parsedData = JSON.parse(data);
+                            }
+                            return parsedData;
+                        })
+                            .then((localResponseBody) => {
+                            // I haven't yet found a way to fully simulate sending and then receiving a response
+                            //  from the API. So instead, now that we actually have the value we'll send the request,
+                            //  wait for a reply and then replace the response.
+                            this.addEventListener("readystatechange", () => {
+                                if (this.readyState === XMLHttpRequest.DONE) {
+                                    const remoteResponseBody = JSON.parse(this.responseText);
+                                    const mergedResponseBody = (0, roll_executor_1.mergeRollResults)(localResponseBody, remoteResponseBody);
+                                    if (integration.isDebugEnabled()) {
+                                        console.log({
+                                            description: "Setting body of response",
+                                            readyState: this.readyState,
+                                            remoteResponseBody,
+                                            localResponseBody,
+                                            mergedResponseBody,
+                                        });
+                                    }
+                                    // Now that we have processed the data, we set it as the response
+                                    Object.defineProperty(this, "responseText", {
+                                        configurable: true,
+                                        value: JSON.stringify(mergedResponseBody),
+                                    });
+                                }
+                            });
+                            sendRollRequestToDemiplane(rollRequest.unusedParts);
+                        })
+                            .catch((e) => {
+                            console.error(`Interceptor failed for url ${requestURL}.`, e);
+                        });
+                    }
                 }
                 else {
                     // Either this is not a dice roll request, or the integration is not enabled. Proceed as normal.
@@ -164,7 +191,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.isDebugEnabled = exports.toggleEnabled = exports.isEnabled = exports.characterSheetInfo = void 0;
+exports.setPixelsIntegrationEnabledForDieType = exports.updateIntegrationEnabledForDice = exports.integrationEnabledForDice = exports.isDebugEnabled = exports.toggleEnabled = exports.isEnabled = exports.characterSheetInfo = void 0;
 const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/(?<gameSystem>[a-zA-Z0-9-]+)\/character-sheet\/(?<characterId>[a-z0-9-]+)/;
 const characterSheetInfo = () => {
     var _a, _b;
@@ -182,7 +209,7 @@ const integrationEnabledStorageName = "pixelsIntegrationEnabled";
 const isEnabled = (characterId) => __awaiter(void 0, void 0, void 0, function* () {
     let characterSheetId = characterId;
     if (!characterSheetId) {
-        characterSheetId = characterSheetInfo().characterId || "";
+        characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
     }
     let enabledForCharacter = false;
     const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
@@ -197,7 +224,7 @@ exports.isEnabled = isEnabled;
 unsafeWindow.isPixelsIntegrationEnabled = () => {
     let integrationEnabledForCharacter = false;
     const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
-    const { characterId } = characterSheetInfo();
+    const { characterId } = (0, exports.characterSheetInfo)();
     if (enabledString && characterId) {
         const enabledObject = JSON.parse(enabledString);
         const characterEnabledInfo = enabledObject[characterId];
@@ -208,9 +235,9 @@ unsafeWindow.isPixelsIntegrationEnabled = () => {
 const toggleEnabled = (characterId) => __awaiter(void 0, void 0, void 0, function* () {
     let characterSheetId = characterId;
     if (!characterSheetId) {
-        characterSheetId = characterSheetInfo().characterId || "";
+        characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
     }
-    let enabledForCharacter = !isEnabled(characterId);
+    let enabledForCharacter = !(0, exports.isEnabled)(characterId);
     const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
     if (localStorageEntryString) {
         const localStorageEntry = JSON.parse(localStorageEntryString);
@@ -223,7 +250,7 @@ exports.toggleEnabled = toggleEnabled;
 unsafeWindow.togglePixelsItegrationEnabled = () => {
     let integrationPreviouslyEnabledForCharacter = false;
     const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
-    const { characterId } = characterSheetInfo();
+    const { characterId } = (0, exports.characterSheetInfo)();
     const enabledObject = enabledString
         ? JSON.parse(enabledString)
         : {};
@@ -248,6 +275,102 @@ unsafeWindow.togglePixelsItegrationDebug = () => {
     unsafeWindow.localStorage.setItem(integrationDebugStorageName, `${!integrationDebugPreviouslyEnabled}`);
     return !integrationDebugPreviouslyEnabled;
 };
+const integrationEnabledForDiceStorageName = "pixelsIntegrationEnabledForDice";
+const integrationEnabledForDice = () => {
+    const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledForDiceStorageName);
+    let enabledObject;
+    if (enabledString) {
+        enabledObject = JSON.parse(enabledString);
+    }
+    else {
+        // The settings do not yet exist, so create a default and save it
+        enabledObject = {
+            d4: false,
+            d6: false,
+            d8: false,
+            d10: false,
+            d00: false,
+            d12: false,
+            d20: false,
+            dF: false,
+        };
+        unsafeWindow.localStorage.setItem(integrationEnabledForDiceStorageName, JSON.stringify(enabledObject));
+    }
+    return enabledObject;
+};
+exports.integrationEnabledForDice = integrationEnabledForDice;
+const updateIntegrationEnabledForDice = (updatedSettings) => {
+    const previouslyEnabledString = unsafeWindow.localStorage.getItem(integrationEnabledForDiceStorageName);
+    let previouslyEnabledObject;
+    if (previouslyEnabledString) {
+        previouslyEnabledObject = JSON.parse(previouslyEnabledString);
+    }
+    else {
+        // The settings do not yet exist, so create a default
+        previouslyEnabledObject = {
+            d4: false,
+            d6: false,
+            d8: false,
+            d10: false,
+            d00: false,
+            d12: false,
+            d20: false,
+            dF: false,
+        };
+    }
+    const newlyEnabledObject = Object.assign(Object.assign({}, previouslyEnabledObject), updatedSettings);
+    unsafeWindow.localStorage.setItem(integrationEnabledForDiceStorageName, JSON.stringify(newlyEnabledObject));
+    return newlyEnabledObject;
+};
+exports.updateIntegrationEnabledForDice = updateIntegrationEnabledForDice;
+const setPixelsIntegrationEnabledForDieType = (dieType, enabled) => {
+    const updatedSettings = {};
+    switch (dieType) {
+        case "d4": {
+            updatedSettings.d4 = enabled;
+            break;
+        }
+        case "d6pipped":
+        case "d6": {
+            updatedSettings.d6 = enabled;
+            break;
+        }
+        case "d8": {
+            updatedSettings.d8 = enabled;
+            break;
+        }
+        case "d10": {
+            updatedSettings.d10 = enabled;
+            break;
+        }
+        case "d00": {
+            updatedSettings.d00 = enabled;
+            break;
+        }
+        case "d12": {
+            updatedSettings.d12 = enabled;
+            break;
+        }
+        case "d20": {
+            updatedSettings.d20 = enabled;
+            break;
+        }
+        case "d6fudge":
+        case "dF": {
+            updatedSettings.dF = enabled;
+            break;
+        }
+        default: {
+            throw new Error(`Unknown dice type ${dieType}`);
+        }
+    }
+    return (0, exports.updateIntegrationEnabledForDice)(updatedSettings);
+};
+exports.setPixelsIntegrationEnabledForDieType = setPixelsIntegrationEnabledForDieType;
+// @ts-ignore
+unsafeWindow.enablePixelsIntegrationForDieType = (dieType) => (0, exports.setPixelsIntegrationEnabledForDieType)(dieType, true);
+// @ts-ignore
+unsafeWindow.disablePixelsIntegrationForDieType = (dieType) => (0, exports.setPixelsIntegrationEnabledForDieType)(dieType, false);
 
 
 /***/ }),
@@ -266,7 +389,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.expectRolls = exports.CritResult = void 0;
+exports.mergeRollResults = exports.expectRolls = exports.CritResult = void 0;
 const integration_utils_1 = __webpack_require__(530);
 const roll_handler_1 = __webpack_require__(952);
 /**
@@ -435,6 +558,30 @@ const expectRolls = (rollRequest, gameSystem) => __awaiter(void 0, void 0, void 
     return result;
 });
 exports.expectRolls = expectRolls;
+const mergeRollResults = (firstRollResult, secondRollResult) => {
+    const mergedResult = Object.assign({}, firstRollResult);
+    // Update the total
+    mergedResult.total += secondRollResult.total;
+    // Update the crit info
+    if (firstRollResult.crit === CritResult.CRITICAL_SUCCESS ||
+        secondRollResult.crit === CritResult.CRITICAL_SUCCESS) {
+        mergedResult.crit = CritResult.CRITICAL_SUCCESS;
+    }
+    else if (firstRollResult.crit === CritResult.CRITICAL_FAILURE ||
+        secondRollResult.crit === CritResult.CRITICAL_FAILURE) {
+        mergedResult.crit = CritResult.CRITICAL_FAILURE;
+    }
+    else {
+        mergedResult.crit = CritResult.NO_CRIT;
+    }
+    // Set the new parts in the merged result
+    mergedResult.raw_dice.parts = [
+        ...firstRollResult.raw_dice.parts,
+        ...secondRollResult.raw_dice.parts,
+    ];
+    return mergedResult;
+};
+exports.mergeRollResults = mergeRollResults;
 const handleNumericDiceResults = (generatorDiceSize, critSuccessPredicate, critFailurePredicate) => {
     return (diceRolls) => {
         const individualResults = diceRolls
@@ -648,7 +795,7 @@ const handleDieRolled = (dieType, face, colorway, dieName, dieId) => {
         }
     }
     let rollEvent;
-    if (listener && diceSize) {
+    if (diceSize) {
         rollEvent = {
             success: true,
             diceSize,
@@ -658,9 +805,6 @@ const handleDieRolled = (dieType, face, colorway, dieName, dieId) => {
             dieName: dieName,
             dieId: dieId,
         };
-        listener.callback(rollEvent);
-        // @ts-ignore
-        unsafeWindow.expectedRolls = listExpectedRolls();
     }
     else {
         rollEvent = {
@@ -669,40 +813,85 @@ const handleDieRolled = (dieType, face, colorway, dieName, dieId) => {
             dieType: "unknown",
         };
     }
+    if (listener && rollEvent.success) {
+        listener.callback(rollEvent);
+        // @ts-ignore
+        unsafeWindow.expectedRolls = listExpectedRolls();
+    }
     return rollEvent;
 };
 const registerVirtualRollers = () => {
-    const rollVirtualD4 = () => {
-        const randomFace = Math.round(Math.random() * 4) + 1;
-        return handleDieRolled("d4", randomFace, "virtual", "Virtual d4", -4);
+    const rollVirtualD4 = (count = 1) => {
+        const cleanCount = Math.max(count, 1);
+        const results = new Array(cleanCount);
+        for (let i = 0; i < cleanCount; i++) {
+            const randomFace = Math.round(Math.random() * 4) + 1;
+            results[i] = handleDieRolled("d4", randomFace, "virtual", "Virtual d4", -4);
+        }
+        return results;
     };
-    const rollVirtualD6 = () => {
-        const randomFace = Math.round(Math.random() * 6) + 1;
-        return handleDieRolled("d6", randomFace, "virtual", "Virtual d6", -6);
+    const rollVirtualD6 = (count = 1) => {
+        const cleanCount = Math.max(count, 1);
+        const results = new Array(cleanCount);
+        for (let i = 0; i < cleanCount; i++) {
+            const randomFace = Math.round(Math.random() * 6) + 1;
+            results[i] = handleDieRolled("d6", randomFace, "virtual", "Virtual d6", -6);
+        }
+        return results;
     };
-    const rollVirtualD8 = () => {
-        const randomFace = Math.round(Math.random() * 8) + 1;
-        return handleDieRolled("d8", randomFace, "virtual", "Virtual d8", -8);
+    const rollVirtualD8 = (count = 1) => {
+        const cleanCount = Math.max(count, 1);
+        const results = new Array(cleanCount);
+        for (let i = 0; i < cleanCount; i++) {
+            const randomFace = Math.round(Math.random() * 8) + 1;
+            results[i] = handleDieRolled("d8", randomFace, "virtual", "Virtual d8", -8);
+        }
+        return results;
     };
-    const rollVirtualD10 = () => {
-        const randomFace = Math.round(Math.random() * 10);
-        return handleDieRolled("d10", randomFace, "virtual", "Virtual d10", -10);
+    const rollVirtualD10 = (count = 1) => {
+        const cleanCount = Math.max(count, 1);
+        const results = new Array(cleanCount);
+        for (let i = 0; i < cleanCount; i++) {
+            const randomFace = Math.round(Math.random() * 10);
+            results[i] = handleDieRolled("d10", randomFace, "virtual", "Virtual d10", -10);
+        }
+        return results;
     };
-    const rollVirtualD00 = () => {
-        const randomFace = Math.round(Math.random() * 10) * 10;
-        return handleDieRolled("d00", randomFace, "virtual", "Virtual d00", -100);
+    const rollVirtualD00 = (count = 1) => {
+        const cleanCount = Math.max(count, 1);
+        const results = new Array(cleanCount);
+        for (let i = 0; i < cleanCount; i++) {
+            const randomFace = Math.round(Math.random() * 10) * 10;
+            results[i] = handleDieRolled("d00", randomFace, "virtual", "Virtual d00", -100);
+        }
+        return results;
     };
-    const rollVirtualD12 = () => {
-        const randomFace = Math.round(Math.random() * 12) + 1;
-        return handleDieRolled("d12", randomFace, "virtual", "Virtual d12", -12);
+    const rollVirtualD12 = (count = 1) => {
+        const cleanCount = Math.max(count, 1);
+        const results = new Array(cleanCount);
+        for (let i = 0; i < cleanCount; i++) {
+            const randomFace = Math.round(Math.random() * 12) + 1;
+            results[i] = handleDieRolled("d12", randomFace, "virtual", "Virtual d12", -12);
+        }
+        return results;
     };
-    const rollVirtualD20 = () => {
-        const randomFace = Math.round(Math.random() * 20) + 1;
-        return handleDieRolled("d20", randomFace, "virtual", "Virtual d20", -20);
+    const rollVirtualD20 = (count = 1) => {
+        const cleanCount = Math.max(count, 1);
+        const results = new Array(cleanCount);
+        for (let i = 0; i < cleanCount; i++) {
+            const randomFace = Math.round(Math.random() * 20) + 1;
+            results[i] = handleDieRolled("d20", randomFace, "virtual", "Virtual d20", -20);
+        }
+        return results;
     };
-    const rollVirtualDF = () => {
-        const randomFace = Math.round(Math.random() * 2) - 1;
-        return handleDieRolled("d6fudge", randomFace, "virtual", "Virtual dF", -3);
+    const rollVirtualDF = (count = 1) => {
+        const cleanCount = Math.max(count, 1);
+        const results = new Array(cleanCount);
+        for (let i = 0; i < cleanCount; i++) {
+            const randomFace = Math.round(Math.random() * 2) - 1;
+            results[i] = handleDieRolled("d6fudge", randomFace, "virtual", "Virtual dF", -3);
+        }
+        return results;
     };
     // @ts-ignore
     unsafeWindow.rollVirtualD4 = rollVirtualD4;
@@ -882,48 +1071,153 @@ registerRollCancelers();
 /***/ }),
 
 /***/ 329:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.parseRollRequest = exports.stringifyRollRequest = void 0;
+exports.parseRollRequest = exports.RollRequest = void 0;
+const integration_utils_1 = __webpack_require__(530);
 const extractRollParts = (rollQuery) => {
     var _a, _b, _c;
     return (_c = (_b = (_a = rollQuery === null || rollQuery === void 0 ? void 0 : rollQuery.replace(/%2B/g, "+")) === null || _a === void 0 ? void 0 : _a.replace(/-/g, "+-")) === null || _b === void 0 ? void 0 : _b.replace(/\++/g, "+")) === null || _c === void 0 ? void 0 : _c.split("+");
 };
-const stringifyRollRequest = (rollRequest) => {
-    const parts = [];
-    if (rollRequest.d4) {
-        parts.push(`${rollRequest.d4}d4`);
+/**
+ * An object containing fields for each die type (d4, d6, d8, d10, d12, d20, d100 and dF for fudge dice),
+ * listing how often that type of die should be rolled.
+ * It also containts a constant modifier value that should be added to the final result.
+ */
+class RollRequest {
+    constructor() {
+        this._d4 = 0;
+        this._d6 = 0;
+        this._d8 = 0;
+        this._d10 = 0;
+        this._d12 = 0;
+        this._d20 = 0;
+        this._d100 = 0;
+        this._dF = 0;
+        this._modifier = 0;
     }
-    if (rollRequest.d6) {
-        parts.push(`${rollRequest.d6}d6`);
+    set d4(value) {
+        if (value > 0) {
+            this._d4 = value;
+        }
     }
-    if (rollRequest.d8) {
-        parts.push(`${rollRequest.d8}d8`);
+    get d4() {
+        return this._d4;
     }
-    if (rollRequest.d100) {
-        parts.push(`${rollRequest.d10 + rollRequest.d100}d10`);
-        parts.push(`${rollRequest.d100}d00`);
+    set d6(value) {
+        if (value > 0) {
+            this._d6 = value;
+        }
     }
-    else if (rollRequest.d10) {
-        parts.push(`${rollRequest.d10}d10`);
+    get d6() {
+        return this._d6;
     }
-    if (rollRequest.d12) {
-        parts.push(`${rollRequest.d12}d12`);
+    set d8(value) {
+        if (value > 0) {
+            this._d8 = value;
+        }
     }
-    if (rollRequest.d20) {
-        parts.push(`${rollRequest.d20}d20`);
+    get d8() {
+        return this._d8;
     }
-    if (rollRequest.dF) {
-        parts.push(`${rollRequest.d12}dF`);
+    set d10(value) {
+        if (value > 0) {
+            this._d10 = value;
+        }
     }
-    if (rollRequest.modifier) {
-        parts.push(`${rollRequest.modifier}`);
+    get d10() {
+        return this._d10;
     }
-    return parts.join("+");
-};
-exports.stringifyRollRequest = stringifyRollRequest;
+    set d12(value) {
+        if (value > 0) {
+            this._d12 = value;
+        }
+    }
+    get d12() {
+        return this._d12;
+    }
+    set d20(value) {
+        if (value > 0) {
+            this._d20 = value;
+        }
+    }
+    get d20() {
+        return this._d20;
+    }
+    set d100(value) {
+        if (value > 0) {
+            this._d100 = value;
+        }
+    }
+    get d100() {
+        return this._d100;
+    }
+    set dF(value) {
+        if (value > 0) {
+            this._dF = value;
+        }
+    }
+    get dF() {
+        return this._dF;
+    }
+    set modifier(value) {
+        this._modifier = value;
+    }
+    get modifier() {
+        return this._modifier;
+    }
+    set unusedParts(value) {
+        this._unusedParts = value;
+    }
+    get unusedParts() {
+        return this._unusedParts;
+    }
+    containsRolls() {
+        return (this.d4 > 0 ||
+            this.d6 > 0 ||
+            this.d8 > 0 ||
+            this.d10 > 0 ||
+            this.d100 > 0 ||
+            this.d12 > 0 ||
+            this.d20 > 0 ||
+            this.dF > 0);
+    }
+    stringify(includeModifier = true, separator = ", ") {
+        const parts = [];
+        if (this.d4) {
+            parts.push(`${this.d4}D4`);
+        }
+        if (this.d6) {
+            parts.push(`${this.d6}D6`);
+        }
+        if (this.d8) {
+            parts.push(`${this.d8}D8`);
+        }
+        if (this.d100) {
+            parts.push(`${this.d10 + this.d100}D10`);
+            parts.push(`${this.d100}D00`);
+        }
+        else if (this.d10) {
+            parts.push(`${this.d10}D10`);
+        }
+        if (this.d12) {
+            parts.push(`${this.d12}D12`);
+        }
+        if (this.d20) {
+            parts.push(`${this.d20}D20`);
+        }
+        if (this.dF) {
+            parts.push(`${this.d12}DF`);
+        }
+        if (includeModifier && this.modifier) {
+            parts.push(`${modifierRegex}`);
+        }
+        return parts.join(separator);
+    }
+}
+exports.RollRequest = RollRequest;
 const countDiceMatchingRegex = (rollParts, regex) => rollParts
     .filter((rollPart) => regex.test(rollPart))
     .map((rollPart) => {
@@ -949,35 +1243,51 @@ const modifierRegex = /^(?<count>-?\d+)$/;
  */
 const parseRollRequest = (rollQuery) => {
     const rollParts = extractRollParts(rollQuery);
-    const rollRequest = {
-        d4: countDiceMatchingRegex(rollParts, d4Regex),
-        d6: countDiceMatchingRegex(rollParts, d6Regex),
-        d8: countDiceMatchingRegex(rollParts, d8Regex),
-        d10: countDiceMatchingRegex(rollParts, d10Regex),
-        d12: countDiceMatchingRegex(rollParts, d12Regex),
-        d20: countDiceMatchingRegex(rollParts, d20Regex),
-        dF: countDiceMatchingRegex(rollParts, dFRegex),
-        d100: countDiceMatchingRegex(rollParts, d100Regex),
-        modifier: countDiceMatchingRegex(rollParts, modifierRegex),
-    };
+    const enabledForDice = (0, integration_utils_1.integrationEnabledForDice)();
+    const rollRequest = new RollRequest();
+    if (enabledForDice.d4) {
+        rollRequest.d4 = countDiceMatchingRegex(rollParts, d4Regex);
+    }
+    if (enabledForDice.d6) {
+        rollRequest.d6 = countDiceMatchingRegex(rollParts, d6Regex);
+    }
+    if (enabledForDice.d8) {
+        rollRequest.d8 = countDiceMatchingRegex(rollParts, d8Regex);
+    }
+    if (enabledForDice.d10) {
+        rollRequest.d10 = countDiceMatchingRegex(rollParts, d10Regex);
+    }
+    if (enabledForDice.d12) {
+        rollRequest.d12 = countDiceMatchingRegex(rollParts, d12Regex);
+    }
+    if (enabledForDice.d20) {
+        rollRequest.d20 = countDiceMatchingRegex(rollParts, d20Regex);
+    }
+    if (enabledForDice.d10 && enabledForDice.d00) {
+        rollRequest.d100 = countDiceMatchingRegex(rollParts, d100Regex);
+    }
+    rollRequest.modifier = countDiceMatchingRegex(rollParts, modifierRegex);
     const unusedParts = rollParts
-        .filter((rollPart) => !d4Regex.test(rollPart))
-        .filter((rollPart) => !d6Regex.test(rollPart))
-        .filter((rollPart) => !d8Regex.test(rollPart))
-        .filter((rollPart) => !d10Regex.test(rollPart))
-        .filter((rollPart) => !d12Regex.test(rollPart))
-        .filter((rollPart) => !d20Regex.test(rollPart))
-        .filter((rollPart) => !d100Regex.test(rollPart))
-        .filter((rollPart) => !dFRegex.test(rollPart))
+        .filter((rollPart) => !(enabledForDice.d4 && d4Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.d6 && d6Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.d8 && d8Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.d10 && d10Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.d12 && d12Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.d20 && d20Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.d10 && enabledForDice.d00 && d100Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDice.dF && dFRegex.test(rollPart)))
         .filter((rollPart) => !modifierRegex.test(rollPart));
     if (unusedParts.length > 0) {
-        console.error({
-            description: "The roll query contained parts that could not be interpreted",
-            rollQuery,
-            rollParts,
-            rollRequest,
-            unusedParts,
-        });
+        if ((0, integration_utils_1.isDebugEnabled)()) {
+            console.log({
+                description: "The roll query contained parts that could not be interpreted or dice types that are not currently enabled",
+                rollQuery,
+                rollParts,
+                rollRequest,
+                unusedParts,
+            });
+        }
+        rollRequest.unusedParts = unusedParts.join("%2B");
     }
     return rollRequest;
 };
