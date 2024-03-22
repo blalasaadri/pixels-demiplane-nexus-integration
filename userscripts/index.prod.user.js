@@ -10461,7 +10461,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.connectToDie = exports.registerRollListener = void 0;
+exports.connectToDie = exports.getCurrentlyConnectedDice = exports.registerDiceConnectionListener = exports.registerRollListener = void 0;
 const pixels_web_connect_1 = __webpack_require__(571);
 const integration_utils_1 = __webpack_require__(530);
 const integration_utils_2 = __webpack_require__(530);
@@ -10619,64 +10619,47 @@ const connectedDice = {
     d20: [],
     dF: [],
 };
+const diceConnectionListeners = [];
+const registerDiceConnectionListener = (diceConnectionListener) => {
+    diceConnectionListeners.push(diceConnectionListener);
+};
+exports.registerDiceConnectionListener = registerDiceConnectionListener;
+const notifyDiceConnectionListeners = (connectedDie) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log({
+        description: "Calling dice connection listeners",
+        connectedDie,
+        diceConnectionListeners,
+    });
+    for (const listener of diceConnectionListeners) {
+        if (!listener.predicate || listener.predicate(connectedDie)) {
+            listener.callback(connectedDice);
+        }
+    }
+});
 const getCurrentlyConnectedDice = () => JSON.parse(JSON.stringify(connectedDice));
+exports.getCurrentlyConnectedDice = getCurrentlyConnectedDice;
 // @ts-ignore
-unsafeWindow.pixelsIntegrationConnectedDice = getCurrentlyConnectedDice;
+unsafeWindow.pixelsIntegrationConnectedDice = exports.getCurrentlyConnectedDice;
 const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
     const pixel = yield (0, pixels_web_connect_1.requestPixel)();
-    yield (0, pixels_web_connect_1.repeatConnect)(pixel, {
-        retries: 10,
-    });
-    pixel.blink(pixels_web_connect_1.Color.brightBlue, {
-        count: 3,
-        duration: 2000,
-        fade: 0.5,
-    });
-    const { dieType, colorway: pixelColorway, name: pixelName, pixelId } = pixel;
-    if ((0, integration_utils_1.isDebugEnabled)()) {
-        console.log({
-            description: "Connected to pixel",
-            pixelColorway,
-            batteryLevel: pixel.batteryLevel,
-            pixelName,
-            dieType,
-            pixelId,
-            pixel,
-        });
-    }
-    pixel.addEventListener("roll", (face) => {
-        if ((0, integration_utils_1.isDebugEnabled)()) {
-            console.log({
-                description: "Pixels die rolled",
-                pixelColorway,
-                batteryLevel: pixel.batteryLevel,
-                pixelName,
-                dieType,
-                pixelId,
-            });
-        }
-        handleDieRolled(dieType, face, pixelColorway, pixelName, pixelId);
-    });
     pixel.addEventListener("status", (status) => {
+        const { dieType, colorway: pixelColorway, name: pixelName, pixelId, } = pixel;
+        const connectedDie = {
+            id: pixelId,
+            name: pixelName,
+            colorway: pixelColorway,
+            dieType,
+        };
         if ((0, integration_utils_1.isDebugEnabled)()) {
             console.log({
                 description: "Pixels die status changed",
-                pixelColorway,
+                connectedDie,
                 batteryLevel: pixel.batteryLevel,
-                pixelName,
-                dieType,
-                pixelId,
                 status,
             });
         }
         switch (status) {
             case "ready": {
-                const connectedDie = {
-                    id: pixelId,
-                    name: pixelName,
-                    colorway: pixelColorway,
-                    dieType,
-                };
                 switch (dieType) {
                     case "d4": {
                         connectedDice.d4.push(connectedDie);
@@ -10715,40 +10698,74 @@ const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
                 (0, integration_utils_2.updateIntegrationEnabledForDice)({
                     [dieType]: true,
                 });
+                notifyDiceConnectionListeners(connectedDie);
                 break;
             }
             case "disconnecting":
             case "disconnected": {
+                const disconnectedDice = [];
                 switch (dieType) {
                     case "d4": {
-                        connectedDice.d4 = connectedDice.d4.filter(({ id }) => id !== pixelId);
+                        const matchingDice = connectedDice.d4.filter(({ id }) => id === pixelId);
+                        if (matchingDice.length > 0) {
+                            connectedDice.d4 = connectedDice.d4.filter(({ id }) => id !== pixelId);
+                            disconnectedDice.push(...matchingDice);
+                        }
                         break;
                     }
                     case "d6":
                     case "d6pipped": {
-                        connectedDice.d6 = connectedDice.d6.filter(({ id }) => id !== pixelId);
+                        const matchingDice = connectedDice.d6.filter(({ id }) => id === pixelId);
+                        if (matchingDice.length > 0) {
+                            connectedDice.d6 = connectedDice.d6.filter(({ id }) => id !== pixelId);
+                            disconnectedDice.push(...matchingDice);
+                        }
                         break;
                     }
                     case "d8": {
-                        connectedDice.d8 = connectedDice.d8.filter(({ id }) => id !== pixelId);
+                        const matchingDice = connectedDice.d8.filter(({ id }) => id === pixelId);
+                        if (matchingDice.length > 0) {
+                            connectedDice.d8 = connectedDice.d8.filter(({ id }) => id !== pixelId);
+                            disconnectedDice.push(...matchingDice);
+                        }
                         break;
                     }
                     case "d10":
                     case "d00": {
-                        connectedDice.d10 = connectedDice.d10.filter(({ id }) => id !== pixelId);
-                        connectedDice.d00 = connectedDice.d00.filter(({ id }) => id !== pixelId);
+                        const matchingD10s = connectedDice.d10.filter(({ id }) => id === pixelId);
+                        if (matchingD10s.length > 0) {
+                            connectedDice.d10 = connectedDice.d10.filter(({ id }) => id !== pixelId);
+                            disconnectedDice.push(...matchingD10s);
+                        }
+                        const matchingD00s = connectedDice.d00.filter(({ id }) => id === pixelId);
+                        if (matchingD00s.length > 0) {
+                            connectedDice.d00 = connectedDice.d00.filter(({ id }) => id !== pixelId);
+                            disconnectedDice.push(...matchingD00s);
+                        }
                         break;
                     }
                     case "d12": {
-                        connectedDice.d12 = connectedDice.d12.filter(({ id }) => id !== pixelId);
+                        const matchingDice = connectedDice.d12.filter(({ id }) => id === pixelId);
+                        if (matchingDice.length > 0) {
+                            connectedDice.d12 = connectedDice.d12.filter(({ id }) => id !== pixelId);
+                        }
+                        disconnectedDice.push(...matchingDice);
                         break;
                     }
                     case "d20": {
-                        connectedDice.d20 = connectedDice.d20.filter(({ id }) => id !== pixelId);
+                        const matchingDice = connectedDice.d20.filter(({ id }) => id === pixelId);
+                        if (matchingDice.length > 0) {
+                            connectedDice.d20 = connectedDice.d20.filter(({ id }) => id !== pixelId);
+                            disconnectedDice.push(...matchingDice);
+                        }
                         break;
                     }
                     case "d6fudge": {
-                        connectedDice.dF = connectedDice.dF.filter(({ id }) => id !== pixelId);
+                        const matchingDice = connectedDice.dF.filter(({ id }) => id === pixelId);
+                        if (matchingDice.length > 0) {
+                            connectedDice.dF = connectedDice.dF.filter(({ id }) => id !== pixelId);
+                            disconnectedDice.push(...matchingDice);
+                        }
                         break;
                     }
                     case "unknown": {
@@ -10765,9 +10782,35 @@ const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
                     d20: connectedDice.d20.length > 0,
                     dF: connectedDice.dF.length > 0,
                 });
+                for (const disconnectedDie of disconnectedDice) {
+                    notifyDiceConnectionListeners(disconnectedDie);
+                }
                 break;
             }
         }
+    });
+    yield (0, pixels_web_connect_1.repeatConnect)(pixel, {
+        retries: 10,
+    });
+    // Blink the die to indicate a successful connection
+    pixel.blink(pixels_web_connect_1.Color.brightBlue, {
+        count: 3,
+        duration: 2000,
+        fade: 0.5,
+    });
+    const { dieType, colorway: pixelColorway, name: pixelName, pixelId } = pixel;
+    pixel.addEventListener("roll", (face) => {
+        if ((0, integration_utils_1.isDebugEnabled)()) {
+            console.log({
+                description: "Pixels die rolled",
+                pixelColorway,
+                batteryLevel: pixel.batteryLevel,
+                pixelName,
+                dieType,
+                pixelId,
+            });
+        }
+        handleDieRolled(dieType, face, pixelColorway, pixelName, pixelId);
     });
 });
 exports.connectToDie = connectToDie;
@@ -11503,6 +11546,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
         }
 
         .jss-pixels-menu {
+			top: 14px !important;
             width: 100dvw;
             cursor: default;
             min-height: 169px;
@@ -11711,6 +11755,96 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
             }
         }
 
+		.css-pixels-dice-overview-body {
+			box-sizing: border-box;
+			display: flex;
+			flex-flow: wrap;
+			width: 100%;
+		}
+
+		.css-pixels-dice-overview-column {
+			box-sizing: border-box;
+			margin: 0px;
+			flex-direction: row;
+			flex-basis: 25%;
+			-webkit-box-flex: 0;
+			flex-grow: 0;
+			max-width: 25%;
+		}
+
+		@media (min-width: 768px) {
+			.css-pixels-dice-overview-column {
+				flex-basis: 25%;
+				-webkit-box-flex: 0;
+				flex-grow: 0;
+				max-width: 25%;
+			}
+		}
+
+		@media (min-width: 1024px) {
+			.css-pixels-dice-overview-column {
+				flex-basis: 25%;
+				-webkit-box-flex: 0;
+				flex-grow: 0;
+				max-width: 25%;
+			}
+		}
+
+		.css-pixels-dice-overview-last-column {
+			box-sizing: border-box;
+			margin: 0px;
+			flex-direction: row;
+			flex-basis: 20%;
+			-webkit-box-flex: 0;
+			flex-grow: 0;
+			max-width: 20%;
+		}
+
+		@media (min-width: 768px) {
+			.css-pixels-dice-overview-last-column {
+				flex-basis: 20%;
+				-webkit-box-flex: 0;
+				flex-grow: 0;
+				max-width: 20%;
+			}
+		}
+
+		@media (min-width: 1024px) {
+			.css-pixels-dice-overview-last-column {
+				flex-basis: 20%;
+				-webkit-box-flex: 0;
+				flex-grow: 0;
+				max-width: 20%;
+			}
+		}
+
+		.css-pixels-dice-overview-dice-box {
+			display: flex;
+			flex-wrap: wrap;
+			flex-direction: row;
+			padding-bottom: 10px;
+		}
+
+		.css-pixels-dice-overview-dice-box img {
+			display: block;
+			margin-left: auto;
+			margin-right: auto;
+		}
+
+		.css-pixels-dice-overview-die-info {
+			flex-grow: 0;
+			flex-shrink: 0;
+			flex-basis: 100%;
+			text-align: center;
+			padding-right: 6px;
+			font-family: GoodOTCondBold !important;
+			font-size: 14px;
+			text-transform: uppercase;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
         /* Titles in the menu */
 
         .jss-pixels-in-menu-title {
@@ -11886,6 +12020,218 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                 pixelsOverviewTitleParagraph.classList.add("MuiTypography-root", "MuiTypography-body1", "jss-pixels-in-menu-title-p");
                 pixelsOverviewTitleParagraph.innerHTML = (0, translations_1.getTranslation)("ui.pixelsMenu.overview.title");
                 pixelsOverviewTitle.appendChild(pixelsOverviewTitleParagraph);
+                // Overview body and columns
+                const pixelsDiceOverviewBody = unsafeWindow.document.createElement("div");
+                pixelsDiceOverviewBody.classList.add("MuiGrid-root", "MuiGrid-container", "css-pixels-dice-overview-body");
+                pixelsDiceOverviewContainer.appendChild(pixelsDiceOverviewBody);
+                const currentlyConnectedDice = (0, roll_handler_1.getCurrentlyConnectedDice)();
+                const createDieImageTag = (cssClass, imageDieType) => {
+                    const determineColorVariant = (connectedDice) => {
+                        let isAtLeastOneConnected = false;
+                        switch (imageDieType) {
+                            case "d4": {
+                                isAtLeastOneConnected = connectedDice.d4.length > 0;
+                                break;
+                            }
+                            case "d6": {
+                                isAtLeastOneConnected = connectedDice.d6.length > 0;
+                                break;
+                            }
+                            case "d8": {
+                                isAtLeastOneConnected = connectedDice.d8.length > 0;
+                                break;
+                            }
+                            case "d10": {
+                                isAtLeastOneConnected = connectedDice.d10.length > 0;
+                                break;
+                            }
+                            case "d00": {
+                                isAtLeastOneConnected = connectedDice.d00.length > 0;
+                                break;
+                            }
+                            case "d12": {
+                                isAtLeastOneConnected = connectedDice.d12.length > 0;
+                                break;
+                            }
+                            case "d20": {
+                                isAtLeastOneConnected = connectedDice.d20.length > 0;
+                                break;
+                            }
+                            case "dF": {
+                                isAtLeastOneConnected = connectedDice.dF.length > 0;
+                                break;
+                            }
+                        }
+                        return isAtLeastOneConnected ? "rainbow" : "white";
+                    };
+                    const dieImage = unsafeWindow.document.createElement("img");
+                    dieImage.classList.add(cssClass);
+                    dieImage.setAttribute("src", `https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/${imageDieType}_${determineColorVariant(currentlyConnectedDice)}.svg`);
+                    dieImage.setAttribute("alt", `pixels ${imageDieType}`);
+                    (0, roll_handler_1.registerDiceConnectionListener)({
+                        predicate: ({ dieType: connectedDieType }) => {
+                            switch (imageDieType) {
+                                case "d4":
+                                    return connectedDieType === "d4";
+                                case "d6":
+                                    return (connectedDieType === "d6" || connectedDieType === "d6pipped");
+                                case "d8":
+                                    return connectedDieType === "d8";
+                                case "d10":
+                                    return connectedDieType === "d10";
+                                case "d00":
+                                    return connectedDieType === "d00";
+                                case "d12":
+                                    return connectedDieType === "d12";
+                                case "d20":
+                                    return connectedDieType === "d20";
+                                case "dF":
+                                    return connectedDieType === "d6fudge";
+                            }
+                        },
+                        callback: (connectedDice) => __awaiter(void 0, void 0, void 0, function* () {
+                            const color = determineColorVariant(connectedDice);
+                            dieImage.setAttribute("src", `https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/${imageDieType}_${color}.svg`);
+                        }),
+                    });
+                    return dieImage;
+                };
+                const createDieInfoTags = (connectedDiceOfType) => {
+                    const infoTags = [];
+                    for (const connectedDie of connectedDiceOfType) {
+                        const dieInfo = unsafeWindow.document.createElement("div");
+                        dieInfo.classList.add("css-pixels-dice-overview-die-info");
+                        dieInfo.innerHTML = connectedDie.name;
+                        dieInfo.setAttribute("pixelId", `${connectedDie.id}`);
+                        infoTags.push({
+                            die: connectedDie,
+                            tag: dieInfo,
+                        });
+                    }
+                    return infoTags;
+                };
+                const addDiceInfoTags = (parent, diePredicate, diceSelector) => {
+                    const addDieInfo = (die, tag) => {
+                        parent.appendChild(tag);
+                        (0, roll_handler_1.registerDiceConnectionListener)({
+                            predicate: diePredicate,
+                            callback: (connectedDice) => __awaiter(void 0, void 0, void 0, function* () {
+                                // Remove dice that are no longer connected from the list
+                                const dieIsNotConnected = diceSelector(connectedDice).find(({ id }) => die.id === id) === undefined;
+                                if (dieIsNotConnected) {
+                                    parent.removeChild(tag);
+                                }
+                            }),
+                        });
+                    };
+                    for (const { die, tag } of createDieInfoTags(diceSelector(currentlyConnectedDice))) {
+                        addDieInfo(die, tag);
+                    }
+                    (0, roll_handler_1.registerDiceConnectionListener)({
+                        predicate: diePredicate,
+                        callback: (connectedDice) => __awaiter(void 0, void 0, void 0, function* () {
+                            // Whenever a new die is connected, check whether all dice of this type are already listed.
+                            const matchingDice = diceSelector(connectedDice);
+                            const listedDiceIds = [];
+                            for (const child of parent.getElementsByClassName("css-pixels-dice-overview-die-info")) {
+                                const pixelIdOfChild = child.getAttribute("pixelId");
+                                if (!pixelIdOfChild) {
+                                    continue;
+                                }
+                                listedDiceIds.push(Number.parseInt(pixelIdOfChild));
+                            }
+                            const unlistedDiceIds = new Set(matchingDice.map(({ id }) => id));
+                            for (const listedDiceId of listedDiceIds) {
+                                unlistedDiceIds.delete(listedDiceId);
+                            }
+                            // Add the unlisted dice
+                            const unlistedDice = [...unlistedDiceIds]
+                                .map((pixelId) => matchingDice.find(({ id }) => id === pixelId))
+                                .filter((unlistedDie) => unlistedDie !== undefined);
+                            if ((0, integration_utils_1.isDebugEnabled)()) {
+                                console.log({
+                                    description: "Found new die, adding listing",
+                                    connectedDice,
+                                    matchingDice,
+                                    unlistedDiceIds,
+                                    unlistedDice,
+                                    children: parent.children,
+                                });
+                            }
+                            for (const { die, tag } of createDieInfoTags(unlistedDice)) {
+                                addDieInfo(die, tag);
+                            }
+                        }),
+                    });
+                };
+                (() => {
+                    const pixelsDiceOverviewColumn1 = unsafeWindow.document.createElement("div");
+                    pixelsDiceOverviewColumn1.classList.add("MuiGrid-root", "MuiGrid-item", "MuiGrid-grid-xs-4", "MuiGrid-grid-sm-4", "MuiGrid-grid-md-4", "MuiGrid-grid-lg-3", "css-pixels-dice-overview-column");
+                    pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn1);
+                    // d4
+                    const pixelsDiceOverviewD4Box = unsafeWindow.document.createElement("div");
+                    pixelsDiceOverviewD4Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d4-box", "MuiBox-root", "css-0");
+                    pixelsDiceOverviewColumn1.appendChild(pixelsDiceOverviewD4Box);
+                    pixelsDiceOverviewD4Box.appendChild(createDieImageTag("dice-d4", "d4"));
+                    addDiceInfoTags(pixelsDiceOverviewD4Box, ({ dieType }) => dieType === "d4", ({ d4 }) => d4);
+                    // D00
+                    const pixelsDiceOverviewD00Box = unsafeWindow.document.createElement("div");
+                    pixelsDiceOverviewD00Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d00-box", "MuiBox-root", "css-0");
+                    pixelsDiceOverviewColumn1.appendChild(pixelsDiceOverviewD00Box);
+                    pixelsDiceOverviewD00Box.appendChild(createDieImageTag("dice-fab-d10", "d00"));
+                    addDiceInfoTags(pixelsDiceOverviewD00Box, ({ dieType }) => dieType === "d00", ({ d00 }) => d00);
+                })();
+                (() => {
+                    const pixelsDiceOverviewColumn2 = unsafeWindow.document.createElement("div");
+                    pixelsDiceOverviewColumn2.classList.add("MuiGrid-root", "MuiGrid-item", "MuiGrid-grid-xs-4", "MuiGrid-grid-sm-4", "MuiGrid-grid-md-4", "MuiGrid-grid-lg-3", "css-pixels-dice-overview-column");
+                    pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn2);
+                    // d6
+                    const pixelsDiceOverviewD6Box = unsafeWindow.document.createElement("div");
+                    pixelsDiceOverviewD6Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d6-box", "MuiBox-root", "css-0");
+                    pixelsDiceOverviewColumn2.appendChild(pixelsDiceOverviewD6Box);
+                    pixelsDiceOverviewD6Box.appendChild(createDieImageTag("dice-fab-d6", "d6"));
+                    addDiceInfoTags(pixelsDiceOverviewD6Box, ({ dieType }) => dieType === "d6" || dieType === "d6pipped", ({ d6 }) => d6);
+                    // d12
+                    const pixelsDiceOverviewD12Box = unsafeWindow.document.createElement("div");
+                    pixelsDiceOverviewD12Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d12-box", "MuiBox-root", "css-0");
+                    pixelsDiceOverviewColumn2.appendChild(pixelsDiceOverviewD12Box);
+                    pixelsDiceOverviewD12Box.appendChild(createDieImageTag("dice-fab-d12", "d12"));
+                    addDiceInfoTags(pixelsDiceOverviewD12Box, ({ dieType }) => dieType === "d12", ({ d12 }) => d12);
+                })();
+                (() => {
+                    const pixelsDiceOverviewColumn3 = unsafeWindow.document.createElement("div");
+                    pixelsDiceOverviewColumn3.classList.add("MuiGrid-root", "MuiGrid-item", "MuiGrid-grid-xs-4", "MuiGrid-grid-sm-4", "MuiGrid-grid-md-4", "MuiGrid-grid-lg-3", "css-pixels-dice-overview-column");
+                    pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn3);
+                    // d8
+                    const pixelsDiceOverviewD8Box = unsafeWindow.document.createElement("div");
+                    pixelsDiceOverviewD8Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d8-box", "MuiBox-root", "css-0");
+                    pixelsDiceOverviewColumn3.appendChild(pixelsDiceOverviewD8Box);
+                    pixelsDiceOverviewD8Box.appendChild(createDieImageTag("dice-fab-d8", "d8"));
+                    addDiceInfoTags(pixelsDiceOverviewD8Box, ({ dieType }) => dieType === "d8", ({ d8 }) => d8);
+                    // d20
+                    const pixelsDiceOverviewD20Box = unsafeWindow.document.createElement("div");
+                    pixelsDiceOverviewD20Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d20-box", "MuiBox-root", "css-0");
+                    pixelsDiceOverviewColumn3.appendChild(pixelsDiceOverviewD20Box);
+                    pixelsDiceOverviewD20Box.appendChild(createDieImageTag("dice-fab-20", "d20"));
+                    addDiceInfoTags(pixelsDiceOverviewD20Box, ({ dieType }) => dieType === "d20", ({ d20 }) => d20);
+                })();
+                (() => {
+                    const pixelsDiceOverviewColumn4 = unsafeWindow.document.createElement("div");
+                    pixelsDiceOverviewColumn4.classList.add("MuiGrid-root", "MuiGrid-item", "MuiGrid-grid-xs-4", "MuiGrid-grid-sm-4", "MuiGrid-grid-md-4", "MuiGrid-grid-lg-3", "css-pixels-dice-overview-column");
+                    pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn4);
+                    // D10
+                    const pixelsDiceOverviewD10Box = unsafeWindow.document.createElement("div");
+                    pixelsDiceOverviewD10Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d10-box", "MuiBox-root", "css-0");
+                    pixelsDiceOverviewColumn4.appendChild(pixelsDiceOverviewD10Box);
+                    pixelsDiceOverviewD10Box.appendChild(createDieImageTag("dice-fab-d10", "d10"));
+                    addDiceInfoTags(pixelsDiceOverviewD10Box, ({ dieType }) => dieType === "d10", ({ d10 }) => d10);
+                    // dF
+                    const pixelsDiceOverviewDFBox = unsafeWindow.document.createElement("div");
+                    pixelsDiceOverviewDFBox.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-dF-box", "MuiBox-root", "css-0");
+                    pixelsDiceOverviewColumn4.appendChild(pixelsDiceOverviewDFBox);
+                    pixelsDiceOverviewDFBox.appendChild(createDieImageTag("dice-fab-d6", "dF"));
+                    addDiceInfoTags(pixelsDiceOverviewDFBox, ({ dieType }) => dieType === "d6fudge", ({ dF }) => dF);
+                })();
             })();
             (_b = gameRulesButton.parentElement) === null || _b === void 0 ? void 0 : _b.insertBefore(pixelsMenuTooltip, gameRulesButton.parentElement.lastChild);
         }

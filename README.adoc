@@ -181,3 +181,12 @@ d10:: `'d10'`
 d00:: `'d00'`
 d20:: `'d20'`
 fudge dice:: `'dF'` or `'d6fudge'`
+
+== Legalese
+
+In the SVG images, the font https://fonts.google.com/specimen/Barlow[Barlow] by https://fonts.google.com/?query=Jeremy%20Tribby[Jeremy Tribby] is used.
+This font is licensed under the https://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&id=OFL[Open Font License].
+
+The brands "Demiplane" and "Demiplane Nexus" are trademarks of the Demiplane Corporation.
+
+Pixels electronic dice are produced by Systemic Games, who hold all related rights.

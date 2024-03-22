@@ -24,12 +24,12 @@
             stroke-width="9"/>
 
     <text xmlns="http://www.w3.org/2000/svg"
-        x="53"
+        x="59"
         y="160"
-        style="font-size:150px;font-family:'DejaVu Sans','Bitstream Vera Sans'"
+        style="font-size:150px;font-family:'Barlow','sans-serif'"
         xml:space="preserve"
         fill="white"
     >
-        <tspan x="53" y="160">D</tspan>
+        <tspan x="59" y="156">D</tspan>
     </text>
 </svg>

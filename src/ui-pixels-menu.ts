@@ -1,5 +1,11 @@
 import { isDebugEnabled } from "./integration-utils";
-import { connectToDie } from "./roll-handler";
+import {
+	type ConnectedDice,
+	type ConnectedDie,
+	connectToDie,
+	getCurrentlyConnectedDice,
+	registerDiceConnectionListener,
+} from "./roll-handler";
 import { getTranslation } from "./translations";
 
 export const setupPixelsMenu = async (): Promise<void> => {
@@ -12,6 +18,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
         }
 
         .jss-pixels-menu {
+			top: 14px !important;
             width: 100dvw;
             cursor: default;
             min-height: 169px;
@@ -219,6 +226,96 @@ export const setupPixelsMenu = async (): Promise<void> => {
                 max-width: 70%;
             }
         }
+
+		.css-pixels-dice-overview-body {
+			box-sizing: border-box;
+			display: flex;
+			flex-flow: wrap;
+			width: 100%;
+		}
+
+		.css-pixels-dice-overview-column {
+			box-sizing: border-box;
+			margin: 0px;
+			flex-direction: row;
+			flex-basis: 25%;
+			-webkit-box-flex: 0;
+			flex-grow: 0;
+			max-width: 25%;
+		}
+
+		@media (min-width: 768px) {
+			.css-pixels-dice-overview-column {
+				flex-basis: 25%;
+				-webkit-box-flex: 0;
+				flex-grow: 0;
+				max-width: 25%;
+			}
+		}
+
+		@media (min-width: 1024px) {
+			.css-pixels-dice-overview-column {
+				flex-basis: 25%;
+				-webkit-box-flex: 0;
+				flex-grow: 0;
+				max-width: 25%;
+			}
+		}
+
+		.css-pixels-dice-overview-last-column {
+			box-sizing: border-box;
+			margin: 0px;
+			flex-direction: row;
+			flex-basis: 20%;
+			-webkit-box-flex: 0;
+			flex-grow: 0;
+			max-width: 20%;
+		}
+
+		@media (min-width: 768px) {
+			.css-pixels-dice-overview-last-column {
+				flex-basis: 20%;
+				-webkit-box-flex: 0;
+				flex-grow: 0;
+				max-width: 20%;
+			}
+		}
+
+		@media (min-width: 1024px) {
+			.css-pixels-dice-overview-last-column {
+				flex-basis: 20%;
+				-webkit-box-flex: 0;
+				flex-grow: 0;
+				max-width: 20%;
+			}
+		}
+
+		.css-pixels-dice-overview-dice-box {
+			display: flex;
+			flex-wrap: wrap;
+			flex-direction: row;
+			padding-bottom: 10px;
+		}
+
+		.css-pixels-dice-overview-dice-box img {
+			display: block;
+			margin-left: auto;
+			margin-right: auto;
+		}
+
+		.css-pixels-dice-overview-die-info {
+			flex-grow: 0;
+			flex-shrink: 0;
+			flex-basis: 100%;
+			text-align: center;
+			padding-right: 6px;
+			font-family: GoodOTCondBold !important;
+			font-size: 14px;
+			text-transform: uppercase;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
 
         /* Titles in the menu */
 
@@ -519,6 +616,416 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					"ui.pixelsMenu.overview.title",
 				);
 				pixelsOverviewTitle.appendChild(pixelsOverviewTitleParagraph);
+
+				// Overview body and columns
+				const pixelsDiceOverviewBody =
+					unsafeWindow.document.createElement("div");
+				pixelsDiceOverviewBody.classList.add(
+					"MuiGrid-root",
+					"MuiGrid-container",
+					"css-pixels-dice-overview-body",
+				);
+				pixelsDiceOverviewContainer.appendChild(pixelsDiceOverviewBody);
+
+				const currentlyConnectedDice = getCurrentlyConnectedDice();
+
+				const createDieImageTag = (
+					cssClass: string,
+					imageDieType:
+						| "d4"
+						| "d6"
+						| "d8"
+						| "d10"
+						| "d00"
+						| "d12"
+						| "d20"
+						| "dF",
+				) => {
+					const determineColorVariant = (
+						connectedDice: ConnectedDice,
+					): "white" | "rainbow" => {
+						let isAtLeastOneConnected = false;
+						switch (imageDieType) {
+							case "d4": {
+								isAtLeastOneConnected = connectedDice.d4.length > 0;
+								break;
+							}
+							case "d6": {
+								isAtLeastOneConnected = connectedDice.d6.length > 0;
+								break;
+							}
+							case "d8": {
+								isAtLeastOneConnected = connectedDice.d8.length > 0;
+								break;
+							}
+							case "d10": {
+								isAtLeastOneConnected = connectedDice.d10.length > 0;
+								break;
+							}
+							case "d00": {
+								isAtLeastOneConnected = connectedDice.d00.length > 0;
+								break;
+							}
+							case "d12": {
+								isAtLeastOneConnected = connectedDice.d12.length > 0;
+								break;
+							}
+							case "d20": {
+								isAtLeastOneConnected = connectedDice.d20.length > 0;
+								break;
+							}
+							case "dF": {
+								isAtLeastOneConnected = connectedDice.dF.length > 0;
+								break;
+							}
+						}
+						return isAtLeastOneConnected ? "rainbow" : "white";
+					};
+					const dieImage = unsafeWindow.document.createElement("img");
+					dieImage.classList.add(cssClass);
+					dieImage.setAttribute(
+						"src",
+						`https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/${imageDieType}_${determineColorVariant(
+							currentlyConnectedDice,
+						)}.svg`,
+					);
+					dieImage.setAttribute("alt", `pixels ${imageDieType}`);
+
+					registerDiceConnectionListener({
+						predicate: ({ dieType: connectedDieType }) => {
+							switch (imageDieType) {
+								case "d4":
+									return connectedDieType === "d4";
+								case "d6":
+									return (
+										connectedDieType === "d6" || connectedDieType === "d6pipped"
+									);
+								case "d8":
+									return connectedDieType === "d8";
+								case "d10":
+									return connectedDieType === "d10";
+								case "d00":
+									return connectedDieType === "d00";
+								case "d12":
+									return connectedDieType === "d12";
+								case "d20":
+									return connectedDieType === "d20";
+								case "dF":
+									return connectedDieType === "d6fudge";
+							}
+						},
+						callback: async (connectedDice) => {
+							const color = determineColorVariant(connectedDice);
+							dieImage.setAttribute(
+								"src",
+								`https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/${imageDieType}_${color}.svg`,
+							);
+						},
+					});
+
+					return dieImage;
+				};
+
+				const createDieInfoTags = (
+					connectedDiceOfType: ConnectedDie[],
+				): { die: ConnectedDie; tag: HTMLDivElement }[] => {
+					const infoTags: { die: ConnectedDie; tag: HTMLDivElement }[] = [];
+					for (const connectedDie of connectedDiceOfType) {
+						const dieInfo = unsafeWindow.document.createElement("div");
+						dieInfo.classList.add("css-pixels-dice-overview-die-info");
+						dieInfo.innerHTML = connectedDie.name;
+						dieInfo.setAttribute("pixelId", `${connectedDie.id}`);
+						infoTags.push({
+							die: connectedDie,
+							tag: dieInfo,
+						});
+					}
+					return infoTags;
+				};
+
+				const addDiceInfoTags = (
+					parent: HTMLDivElement,
+					diePredicate: (connectedDie: ConnectedDie) => boolean,
+					diceSelector: (connectedDice: ConnectedDice) => ConnectedDie[],
+				) => {
+					const addDieInfo = (die: ConnectedDie, tag: HTMLDivElement) => {
+						parent.appendChild(tag);
+						registerDiceConnectionListener({
+							predicate: diePredicate,
+							callback: async (connectedDice) => {
+								// Remove dice that are no longer connected from the list
+								const dieIsNotConnected =
+									diceSelector(connectedDice).find(
+										({ id }) => die.id === id,
+									) === undefined;
+								if (dieIsNotConnected) {
+									parent.removeChild(tag);
+								}
+							},
+						});
+					};
+
+					for (const { die, tag } of createDieInfoTags(
+						diceSelector(currentlyConnectedDice),
+					)) {
+						addDieInfo(die, tag);
+					}
+
+					registerDiceConnectionListener({
+						predicate: diePredicate,
+						callback: async (connectedDice) => {
+							// Whenever a new die is connected, check whether all dice of this type are already listed.
+							const matchingDice = diceSelector(connectedDice);
+							const listedDiceIds: number[] = [];
+							for (const child of parent.getElementsByClassName(
+								"css-pixels-dice-overview-die-info",
+							)) {
+								const pixelIdOfChild = child.getAttribute("pixelId");
+								if (!pixelIdOfChild) {
+									continue;
+								}
+								listedDiceIds.push(Number.parseInt(pixelIdOfChild));
+							}
+							const unlistedDiceIds = new Set(matchingDice.map(({ id }) => id));
+							for (const listedDiceId of listedDiceIds) {
+								unlistedDiceIds.delete(listedDiceId);
+							}
+							// Add the unlisted dice
+							const unlistedDice: ConnectedDie[] = [...unlistedDiceIds]
+								.map((pixelId) => matchingDice.find(({ id }) => id === pixelId))
+								.filter(
+									(unlistedDie) => unlistedDie !== undefined,
+								) as ConnectedDie[];
+
+							if (isDebugEnabled()) {
+								console.log({
+									description: "Found new die, adding listing",
+									connectedDice,
+									matchingDice,
+									unlistedDiceIds,
+									unlistedDice,
+									children: parent.children,
+								});
+							}
+
+							for (const { die, tag } of createDieInfoTags(unlistedDice)) {
+								addDieInfo(die, tag);
+							}
+						},
+					});
+				};
+
+				(() => {
+					const pixelsDiceOverviewColumn1 =
+						unsafeWindow.document.createElement("div");
+					pixelsDiceOverviewColumn1.classList.add(
+						"MuiGrid-root",
+						"MuiGrid-item",
+						"MuiGrid-grid-xs-4",
+						"MuiGrid-grid-sm-4",
+						"MuiGrid-grid-md-4",
+						"MuiGrid-grid-lg-3",
+						"css-pixels-dice-overview-column",
+					);
+					pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn1);
+
+					// d4
+					const pixelsDiceOverviewD4Box =
+						unsafeWindow.document.createElement("div");
+					pixelsDiceOverviewD4Box.classList.add(
+						"css-pixels-dice-overview-dice-box",
+						"pixels-dice-overview-d4-box",
+						"MuiBox-root",
+						"css-0",
+					);
+					pixelsDiceOverviewColumn1.appendChild(pixelsDiceOverviewD4Box);
+					pixelsDiceOverviewD4Box.appendChild(
+						createDieImageTag("dice-d4", "d4"),
+					);
+					addDiceInfoTags(
+						pixelsDiceOverviewD4Box,
+						({ dieType }) => dieType === "d4",
+						({ d4 }) => d4,
+					);
+
+					// D00
+					const pixelsDiceOverviewD00Box =
+						unsafeWindow.document.createElement("div");
+					pixelsDiceOverviewD00Box.classList.add(
+						"css-pixels-dice-overview-dice-box",
+						"pixels-dice-overview-d00-box",
+						"MuiBox-root",
+						"css-0",
+					);
+					pixelsDiceOverviewColumn1.appendChild(pixelsDiceOverviewD00Box);
+					pixelsDiceOverviewD00Box.appendChild(
+						createDieImageTag("dice-fab-d10", "d00"),
+					);
+					addDiceInfoTags(
+						pixelsDiceOverviewD00Box,
+						({ dieType }) => dieType === "d00",
+						({ d00 }) => d00,
+					);
+				})();
+
+				(() => {
+					const pixelsDiceOverviewColumn2 =
+						unsafeWindow.document.createElement("div");
+					pixelsDiceOverviewColumn2.classList.add(
+						"MuiGrid-root",
+						"MuiGrid-item",
+						"MuiGrid-grid-xs-4",
+						"MuiGrid-grid-sm-4",
+						"MuiGrid-grid-md-4",
+						"MuiGrid-grid-lg-3",
+						"css-pixels-dice-overview-column",
+					);
+					pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn2);
+
+					// d6
+					const pixelsDiceOverviewD6Box =
+						unsafeWindow.document.createElement("div");
+					pixelsDiceOverviewD6Box.classList.add(
+						"css-pixels-dice-overview-dice-box",
+						"pixels-dice-overview-d6-box",
+						"MuiBox-root",
+						"css-0",
+					);
+					pixelsDiceOverviewColumn2.appendChild(pixelsDiceOverviewD6Box);
+					pixelsDiceOverviewD6Box.appendChild(
+						createDieImageTag("dice-fab-d6", "d6"),
+					);
+					addDiceInfoTags(
+						pixelsDiceOverviewD6Box,
+						({ dieType }) => dieType === "d6" || dieType === "d6pipped",
+						({ d6 }) => d6,
+					);
+
+					// d12
+					const pixelsDiceOverviewD12Box =
+						unsafeWindow.document.createElement("div");
+					pixelsDiceOverviewD12Box.classList.add(
+						"css-pixels-dice-overview-dice-box",
+						"pixels-dice-overview-d12-box",
+						"MuiBox-root",
+						"css-0",
+					);
+					pixelsDiceOverviewColumn2.appendChild(pixelsDiceOverviewD12Box);
+					pixelsDiceOverviewD12Box.appendChild(
+						createDieImageTag("dice-fab-d12", "d12"),
+					);
+					addDiceInfoTags(
+						pixelsDiceOverviewD12Box,
+						({ dieType }) => dieType === "d12",
+						({ d12 }) => d12,
+					);
+				})();
+
+				(() => {
+					const pixelsDiceOverviewColumn3 =
+						unsafeWindow.document.createElement("div");
+					pixelsDiceOverviewColumn3.classList.add(
+						"MuiGrid-root",
+						"MuiGrid-item",
+						"MuiGrid-grid-xs-4",
+						"MuiGrid-grid-sm-4",
+						"MuiGrid-grid-md-4",
+						"MuiGrid-grid-lg-3",
+						"css-pixels-dice-overview-column",
+					);
+					pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn3);
+
+					// d8
+					const pixelsDiceOverviewD8Box =
+						unsafeWindow.document.createElement("div");
+					pixelsDiceOverviewD8Box.classList.add(
+						"css-pixels-dice-overview-dice-box",
+						"pixels-dice-overview-d8-box",
+						"MuiBox-root",
+						"css-0",
+					);
+					pixelsDiceOverviewColumn3.appendChild(pixelsDiceOverviewD8Box);
+					pixelsDiceOverviewD8Box.appendChild(
+						createDieImageTag("dice-fab-d8", "d8"),
+					);
+					addDiceInfoTags(
+						pixelsDiceOverviewD8Box,
+						({ dieType }) => dieType === "d8",
+						({ d8 }) => d8,
+					);
+
+					// d20
+					const pixelsDiceOverviewD20Box =
+						unsafeWindow.document.createElement("div");
+					pixelsDiceOverviewD20Box.classList.add(
+						"css-pixels-dice-overview-dice-box",
+						"pixels-dice-overview-d20-box",
+						"MuiBox-root",
+						"css-0",
+					);
+					pixelsDiceOverviewColumn3.appendChild(pixelsDiceOverviewD20Box);
+					pixelsDiceOverviewD20Box.appendChild(
+						createDieImageTag("dice-fab-20", "d20"),
+					);
+					addDiceInfoTags(
+						pixelsDiceOverviewD20Box,
+						({ dieType }) => dieType === "d20",
+						({ d20 }) => d20,
+					);
+				})();
+
+				(() => {
+					const pixelsDiceOverviewColumn4 =
+						unsafeWindow.document.createElement("div");
+					pixelsDiceOverviewColumn4.classList.add(
+						"MuiGrid-root",
+						"MuiGrid-item",
+						"MuiGrid-grid-xs-4",
+						"MuiGrid-grid-sm-4",
+						"MuiGrid-grid-md-4",
+						"MuiGrid-grid-lg-3",
+						"css-pixels-dice-overview-column",
+					);
+					pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn4);
+
+					// D10
+					const pixelsDiceOverviewD10Box =
+						unsafeWindow.document.createElement("div");
+					pixelsDiceOverviewD10Box.classList.add(
+						"css-pixels-dice-overview-dice-box",
+						"pixels-dice-overview-d10-box",
+						"MuiBox-root",
+						"css-0",
+					);
+					pixelsDiceOverviewColumn4.appendChild(pixelsDiceOverviewD10Box);
+					pixelsDiceOverviewD10Box.appendChild(
+						createDieImageTag("dice-fab-d10", "d10"),
+					);
+					addDiceInfoTags(
+						pixelsDiceOverviewD10Box,
+						({ dieType }) => dieType === "d10",
+						({ d10 }) => d10,
+					);
+
+					// dF
+					const pixelsDiceOverviewDFBox =
+						unsafeWindow.document.createElement("div");
+					pixelsDiceOverviewDFBox.classList.add(
+						"css-pixels-dice-overview-dice-box",
+						"pixels-dice-overview-dF-box",
+						"MuiBox-root",
+						"css-0",
+					);
+					pixelsDiceOverviewColumn4.appendChild(pixelsDiceOverviewDFBox);
+					pixelsDiceOverviewDFBox.appendChild(
+						createDieImageTag("dice-fab-d6", "dF"),
+					);
+					addDiceInfoTags(
+						pixelsDiceOverviewDFBox,
+						({ dieType }) => dieType === "d6fudge",
+						({ dF }) => dF,
+					);
+				})();
 			})();
 
 			gameRulesButton.parentElement?.insertBefore(

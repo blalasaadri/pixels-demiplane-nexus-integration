@@ -1,0 +1,18 @@
+<svg width="48" height="48" viewbox="0 0 42 42" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="none"></rect>
+
+    <polygon points="21,1 33,5 40,15 40,27 33,37 21,41 9,37 2,27 2,15 9,5"
+        fill="none"
+        stroke="white"
+        stroke-width="1" />
+
+    <text xmlns="http://www.w3.org/2000/svg"
+        x="12"
+        y="28"
+        style="font-size:20px;font-weight:'bold';font-family:'Barlow','sans-serif'"
+        xml:space="preserve"
+        fill="white"
+    >
+        <tspan x="12" y="28">12</tspan>
+    </text>
+</svg>

@@ -255,66 +255,65 @@ const connectedDice: ConnectedDice = {
 	dF: [],
 };
 
-const getCurrentlyConnectedDice = (): { [dieType: string]: ConnectedDie[] } =>
+interface DiceConnectionListener {
+	predicate?: (connectedDie: ConnectedDie) => boolean;
+	callback: (connectedDice: ConnectedDice) => Promise<void>;
+}
+
+const diceConnectionListeners: DiceConnectionListener[] = [];
+
+export const registerDiceConnectionListener = (
+	diceConnectionListener: DiceConnectionListener,
+): void => {
+	diceConnectionListeners.push(diceConnectionListener);
+};
+
+const notifyDiceConnectionListeners = async (
+	connectedDie: ConnectedDie,
+): Promise<void> => {
+	console.log({
+		description: "Calling dice connection listeners",
+		connectedDie,
+		diceConnectionListeners,
+	});
+	for (const listener of diceConnectionListeners) {
+		if (!listener.predicate || listener.predicate(connectedDie)) {
+			listener.callback(connectedDice);
+		}
+	}
+};
+
+export const getCurrentlyConnectedDice = (): ConnectedDice =>
 	JSON.parse(JSON.stringify(connectedDice));
 // @ts-ignore
 unsafeWindow.pixelsIntegrationConnectedDice = getCurrentlyConnectedDice;
 
 export const connectToDie = async () => {
 	const pixel = await requestPixel();
-	await repeatConnect(pixel, {
-		retries: 10,
-	});
-	pixel.blink(Color.brightBlue, {
-		count: 3,
-		duration: 2000,
-		fade: 0.5,
-	});
-	const { dieType, colorway: pixelColorway, name: pixelName, pixelId } = pixel;
-	if (isDebugEnabled()) {
-		console.log({
-			description: "Connected to pixel",
-			pixelColorway,
-			batteryLevel: pixel.batteryLevel,
-			pixelName,
-			dieType,
-			pixelId,
-			pixel,
-		});
-	}
-	pixel.addEventListener("roll", (face) => {
-		if (isDebugEnabled()) {
-			console.log({
-				description: "Pixels die rolled",
-				pixelColorway,
-				batteryLevel: pixel.batteryLevel,
-				pixelName,
-				dieType,
-				pixelId,
-			});
-		}
-		handleDieRolled(dieType, face, pixelColorway, pixelName, pixelId);
-	});
+
 	pixel.addEventListener("status", (status) => {
+		const {
+			dieType,
+			colorway: pixelColorway,
+			name: pixelName,
+			pixelId,
+		} = pixel;
+		const connectedDie: ConnectedDie = {
+			id: pixelId,
+			name: pixelName,
+			colorway: pixelColorway,
+			dieType,
+		};
 		if (isDebugEnabled()) {
 			console.log({
 				description: "Pixels die status changed",
-				pixelColorway,
+				connectedDie,
 				batteryLevel: pixel.batteryLevel,
-				pixelName,
-				dieType,
-				pixelId,
 				status,
 			});
 		}
 		switch (status) {
 			case "ready": {
-				const connectedDie: ConnectedDie = {
-					id: pixelId,
-					name: pixelName,
-					colorway: pixelColorway,
-					dieType,
-				};
 				switch (dieType) {
 					case "d4": {
 						connectedDice.d4.push(connectedDie);
@@ -353,56 +352,107 @@ export const connectToDie = async () => {
 				updateIntegrationEnabledForDice({
 					[dieType]: true,
 				});
+				notifyDiceConnectionListeners(connectedDie);
 				break;
 			}
 			case "disconnecting":
 			case "disconnected": {
+				const disconnectedDice: ConnectedDie[] = [];
 				switch (dieType) {
 					case "d4": {
-						connectedDice.d4 = connectedDice.d4.filter(
-							({ id }) => id !== pixelId,
+						const matchingDice = connectedDice.d4.filter(
+							({ id }) => id === pixelId,
 						);
+						if (matchingDice.length > 0) {
+							connectedDice.d4 = connectedDice.d4.filter(
+								({ id }) => id !== pixelId,
+							);
+							disconnectedDice.push(...matchingDice);
+						}
 						break;
 					}
 					case "d6":
 					case "d6pipped": {
-						connectedDice.d6 = connectedDice.d6.filter(
-							({ id }) => id !== pixelId,
+						const matchingDice = connectedDice.d6.filter(
+							({ id }) => id === pixelId,
 						);
+						if (matchingDice.length > 0) {
+							connectedDice.d6 = connectedDice.d6.filter(
+								({ id }) => id !== pixelId,
+							);
+							disconnectedDice.push(...matchingDice);
+						}
 						break;
 					}
 					case "d8": {
-						connectedDice.d8 = connectedDice.d8.filter(
-							({ id }) => id !== pixelId,
+						const matchingDice = connectedDice.d8.filter(
+							({ id }) => id === pixelId,
 						);
+						if (matchingDice.length > 0) {
+							connectedDice.d8 = connectedDice.d8.filter(
+								({ id }) => id !== pixelId,
+							);
+							disconnectedDice.push(...matchingDice);
+						}
 						break;
 					}
 					case "d10":
 					case "d00": {
-						connectedDice.d10 = connectedDice.d10.filter(
-							({ id }) => id !== pixelId,
+						const matchingD10s = connectedDice.d10.filter(
+							({ id }) => id === pixelId,
 						);
-						connectedDice.d00 = connectedDice.d00.filter(
-							({ id }) => id !== pixelId,
+						if (matchingD10s.length > 0) {
+							connectedDice.d10 = connectedDice.d10.filter(
+								({ id }) => id !== pixelId,
+							);
+							disconnectedDice.push(...matchingD10s);
+						}
+
+						const matchingD00s = connectedDice.d00.filter(
+							({ id }) => id === pixelId,
 						);
+						if (matchingD00s.length > 0) {
+							connectedDice.d00 = connectedDice.d00.filter(
+								({ id }) => id !== pixelId,
+							);
+							disconnectedDice.push(...matchingD00s);
+						}
 						break;
 					}
 					case "d12": {
-						connectedDice.d12 = connectedDice.d12.filter(
-							({ id }) => id !== pixelId,
+						const matchingDice = connectedDice.d12.filter(
+							({ id }) => id === pixelId,
 						);
+						if (matchingDice.length > 0) {
+							connectedDice.d12 = connectedDice.d12.filter(
+								({ id }) => id !== pixelId,
+							);
+						}
+						disconnectedDice.push(...matchingDice);
 						break;
 					}
 					case "d20": {
-						connectedDice.d20 = connectedDice.d20.filter(
-							({ id }) => id !== pixelId,
+						const matchingDice = connectedDice.d20.filter(
+							({ id }) => id === pixelId,
 						);
+						if (matchingDice.length > 0) {
+							connectedDice.d20 = connectedDice.d20.filter(
+								({ id }) => id !== pixelId,
+							);
+							disconnectedDice.push(...matchingDice);
+						}
 						break;
 					}
 					case "d6fudge": {
-						connectedDice.dF = connectedDice.dF.filter(
-							({ id }) => id !== pixelId,
+						const matchingDice = connectedDice.dF.filter(
+							({ id }) => id === pixelId,
 						);
+						if (matchingDice.length > 0) {
+							connectedDice.dF = connectedDice.dF.filter(
+								({ id }) => id !== pixelId,
+							);
+							disconnectedDice.push(...matchingDice);
+						}
 						break;
 					}
 					case "unknown": {
@@ -421,9 +471,37 @@ export const connectToDie = async () => {
 					d20: connectedDice.d20.length > 0,
 					dF: connectedDice.dF.length > 0,
 				});
+				for (const disconnectedDie of disconnectedDice) {
+					notifyDiceConnectionListeners(disconnectedDie);
+				}
 				break;
 			}
 		}
+	});
+
+	await repeatConnect(pixel, {
+		retries: 10,
+	});
+	// Blink the die to indicate a successful connection
+	pixel.blink(Color.brightBlue, {
+		count: 3,
+		duration: 2000,
+		fade: 0.5,
+	});
+
+	const { dieType, colorway: pixelColorway, name: pixelName, pixelId } = pixel;
+	pixel.addEventListener("roll", (face) => {
+		if (isDebugEnabled()) {
+			console.log({
+				description: "Pixels die rolled",
+				pixelColorway,
+				batteryLevel: pixel.batteryLevel,
+				pixelName,
+				dieType,
+				pixelId,
+			});
+		}
+		handleDieRolled(dieType, face, pixelColorway, pixelName, pixelId);
 	});
 };
 
