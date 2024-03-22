@@ -5,6 +5,7 @@ import {
 	addRollsExpectedNotification,
 	removeRollsExpectedNotification,
 } from "./ui-notifications";
+import { setupPixelsMenu } from "./ui-pixels-menu";
 
 const diceRollUrlRegex =
 	/^https:\/\/utils-api.demiplane.com\/dice-roll\?roll=(?<roll>[^&]*)$/;
@@ -167,3 +168,13 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 		XMLHttpRequest.prototype.send = customSend;
 	})();
 }
+
+setupPixelsMenu()
+	.then(() => {
+		if (integration.isDebugEnabled()) {
+			console.log("Pixels menu has been created.");
+		}
+	})
+	.catch((e) => {
+		console.error("Error while setting up pixels menu.", e);
+	});

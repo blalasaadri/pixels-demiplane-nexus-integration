@@ -34,6 +34,7 @@ const config: Configuration = {
             },
             extractComments: false,
         })],
+        //usedExports: true,
     },
     plugins: [
         new BannerPlugin({

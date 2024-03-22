@@ -2,6 +2,13 @@ import type {
 	PixelColorway,
 	PixelDieType,
 } from "@systemic-games/pixels-web-connect";
+import {
+	Color,
+	repeatConnect,
+	requestPixel,
+} from "@systemic-games/pixels-web-connect";
+import { isDebugEnabled } from "./integration-utils";
+import { updateIntegrationEnabledForDice } from "./integration-utils";
 import type { DiceSize } from "./types";
 
 export type DieType =
@@ -217,6 +224,207 @@ const handleDieRolled = (
 		unsafeWindow.expectedRolls = listExpectedRolls();
 	}
 	return rollEvent;
+};
+
+export interface ConnectedDie {
+	id: number;
+	name: string;
+	colorway: PixelColorway;
+	dieType: PixelDieType;
+}
+
+export interface ConnectedDice {
+	d4: ConnectedDie[];
+	d6: ConnectedDie[];
+	d8: ConnectedDie[];
+	d10: ConnectedDie[];
+	d00: ConnectedDie[];
+	d12: ConnectedDie[];
+	d20: ConnectedDie[];
+	dF: ConnectedDie[];
+}
+
+const connectedDice: ConnectedDice = {
+	d4: [],
+	d6: [],
+	d8: [],
+	d10: [],
+	d00: [],
+	d12: [],
+	d20: [],
+	dF: [],
+};
+
+const getCurrentlyConnectedDice = (): { [dieType: string]: ConnectedDie[] } =>
+	JSON.parse(JSON.stringify(connectedDice));
+// @ts-ignore
+unsafeWindow.pixelsIntegrationConnectedDice = getCurrentlyConnectedDice;
+
+export const connectToDie = async () => {
+	const pixel = await requestPixel();
+	await repeatConnect(pixel, {
+		retries: 10,
+	});
+	pixel.blink(Color.brightBlue, {
+		count: 3,
+		duration: 2000,
+		fade: 0.5,
+	});
+	const { dieType, colorway: pixelColorway, name: pixelName, pixelId } = pixel;
+	if (isDebugEnabled()) {
+		console.log({
+			description: "Connected to pixel",
+			pixelColorway,
+			batteryLevel: pixel.batteryLevel,
+			pixelName,
+			dieType,
+			pixelId,
+			pixel,
+		});
+	}
+	pixel.addEventListener("roll", (face) => {
+		if (isDebugEnabled()) {
+			console.log({
+				description: "Pixels die rolled",
+				pixelColorway,
+				batteryLevel: pixel.batteryLevel,
+				pixelName,
+				dieType,
+				pixelId,
+			});
+		}
+		handleDieRolled(dieType, face, pixelColorway, pixelName, pixelId);
+	});
+	pixel.addEventListener("status", (status) => {
+		if (isDebugEnabled()) {
+			console.log({
+				description: "Pixels die status changed",
+				pixelColorway,
+				batteryLevel: pixel.batteryLevel,
+				pixelName,
+				dieType,
+				pixelId,
+				status,
+			});
+		}
+		switch (status) {
+			case "ready": {
+				const connectedDie: ConnectedDie = {
+					id: pixelId,
+					name: pixelName,
+					colorway: pixelColorway,
+					dieType,
+				};
+				switch (dieType) {
+					case "d4": {
+						connectedDice.d4.push(connectedDie);
+						break;
+					}
+					case "d6":
+					case "d6pipped": {
+						connectedDice.d6.push(connectedDie);
+						break;
+					}
+					case "d8": {
+						connectedDice.d8.push(connectedDie);
+						break;
+					}
+					case "d10": {
+						connectedDice.d10.push(connectedDie);
+						break;
+					}
+					case "d00": {
+						connectedDice.d00.push(connectedDie);
+						break;
+					}
+					case "d12": {
+						connectedDice.d12.push(connectedDie);
+						break;
+					}
+					case "d20": {
+						connectedDice.d20.push(connectedDie);
+						break;
+					}
+					case "d6fudge": {
+						connectedDice.dF.push(connectedDie);
+						break;
+					}
+				}
+				updateIntegrationEnabledForDice({
+					[dieType]: true,
+				});
+				break;
+			}
+			case "disconnecting":
+			case "disconnected": {
+				switch (dieType) {
+					case "d4": {
+						connectedDice.d4 = connectedDice.d4.filter(
+							({ id }) => id !== pixelId,
+						);
+						break;
+					}
+					case "d6":
+					case "d6pipped": {
+						connectedDice.d6 = connectedDice.d6.filter(
+							({ id }) => id !== pixelId,
+						);
+						break;
+					}
+					case "d8": {
+						connectedDice.d8 = connectedDice.d8.filter(
+							({ id }) => id !== pixelId,
+						);
+						break;
+					}
+					case "d10":
+					case "d00": {
+						connectedDice.d10 = connectedDice.d10.filter(
+							({ id }) => id !== pixelId,
+						);
+						connectedDice.d00 = connectedDice.d00.filter(
+							({ id }) => id !== pixelId,
+						);
+						break;
+					}
+					case "d12": {
+						connectedDice.d12 = connectedDice.d12.filter(
+							({ id }) => id !== pixelId,
+						);
+						break;
+					}
+					case "d20": {
+						connectedDice.d20 = connectedDice.d20.filter(
+							({ id }) => id !== pixelId,
+						);
+						break;
+					}
+					case "d6fudge": {
+						connectedDice.dF = connectedDice.dF.filter(
+							({ id }) => id !== pixelId,
+						);
+						break;
+					}
+					case "unknown": {
+						console.error(
+							`Unknown die type ${dieType} disconnecting. Don't know, what to do about it.`,
+						);
+					}
+				}
+				updateIntegrationEnabledForDice({
+					d4: connectedDice.d4.length > 0,
+					d6: connectedDice.d6.length > 0,
+					d8: connectedDice.d8.length > 0,
+					d10: connectedDice.d10.length > 0,
+					d00: connectedDice.d00.length > 0,
+					d12: connectedDice.d12.length > 0,
+					d20: connectedDice.d20.length > 0,
+					dF: connectedDice.dF.length > 0,
+				});
+				break;
+			}
+		}
+	});
 };
 
 const registerVirtualRollers = () => {

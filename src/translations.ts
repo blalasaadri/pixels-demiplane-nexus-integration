@@ -7,6 +7,22 @@ type TranslationObject =
 interface Translations {
 	ui: {
 		awaitingPixelsRoll: string;
+		pixelsMenu: {
+			button: {
+				title: string;
+				ariaLabel: string;
+			};
+			settings: {
+				title: string;
+				connectDieButton: {
+					text: string;
+					ariaLabel: string;
+				};
+			};
+			overview: {
+				title: string;
+			};
+		};
 	};
 }
 
@@ -16,6 +32,22 @@ type SupportedLanguages = "en";
 const en: Translations & TranslationObject = {
 	ui: {
 		awaitingPixelsRoll: "Awaiting Pixels roll...",
+		pixelsMenu: {
+			button: {
+				title: "Pixels Dice",
+				ariaLabel: "pixels dice menu button",
+			},
+			settings: {
+				title: "Dice settings",
+				connectDieButton: {
+					text: "Connect Pixels die",
+					ariaLabel: "connect pixels die",
+				},
+			},
+			overview: {
+				title: "Dice overview",
+			},
+		},
 	},
 };
 
