@@ -5,7 +5,7 @@
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
 // @homepage https://github.com/blalasaadri/pixels-demiplane-nexus-userscript#readme
-// @icon https://www.google.com/s2/favicons?sz=64&domain=demiplane.com
+// @icon https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/integration_logo.svg
 // @updateURL https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/userscripts/index.prod.user.js
 // @downloadURL https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/userscripts/index.prod.user.js
 // @license https://opensource.org/licenses/MIT

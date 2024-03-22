@@ -25,7 +25,7 @@
   "userscript": {
     "namespace": "http://tampermonkey.net/",
     "license": "https://opensource.org/licenses/MIT",
-    "icon": "https://www.google.com/s2/favicons?sz=64&domain=demiplane.com",
+    "icon": "https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/integration_logo.svg",
     "require-template": "https://unpkg.com/${dependencyName}@${dependencyVersion}",
     "require": [
       "https://unpkg.com/@systemic-games/pixels-web-connect@1.2.0/dist/umd/index.js"

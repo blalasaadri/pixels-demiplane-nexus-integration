@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 210">
+    <defs>
+        <linearGradient id="rainbowGradient" x1="0%" y1="100%" x2="120%" y2="0%">
+        <stop offset="0%" stop-color="#3eacc2"/> <!-- blue -->
+        <stop offset="25%" stop-color="#793ec2"/> <!-- purple -->
+        <stop offset="40%" stop-color="#f53a25"/> <!-- red -->
+        <stop offset="65%" stop-color="#f5f11b"/> <!-- yellow -->
+        <stop offset="80%" stop-color="#7ccf80"/> <!-- green -->
+        </linearGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="black"/>
+    <polygon points="105,5
+                     164,24
+                     200,74
+                     200,136
+                     164,186
+                     105,205
+                     46,186
+                     10,136
+                     10,74
+                     46,24"
+            fill="black"
+            stroke="url(#rainbowGradient)"
+            stroke-width="9"/>
+
+    <text xmlns="http://www.w3.org/2000/svg"
+        x="53"
+        y="160"
+        style="font-size:150px;font-family:'DejaVu Sans','Bitstream Vera Sans'"
+        xml:space="preserve"
+        fill="white"
+    >
+        <tspan x="53" y="160">D</tspan>
+    </text>
+</svg>
