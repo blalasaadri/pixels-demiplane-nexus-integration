@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.0.5
+// @version 0.0.6
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -9874,7 +9874,12 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
                     }
                     else {
                         console.log(`The Pixel integration is waiting for the following rolls: '${rollRequest.stringify(false)}'`);
-                        (0, ui_notifications_1.addRollsExpectedNotification)(rollRequest);
+                        try {
+                            (0, ui_notifications_1.addRollsExpectedNotification)(rollRequest);
+                        }
+                        catch (e) {
+                            console.error("Could not add expected rolls notification", e);
+                        }
                         // Do not send the request yet, but instead request the results from virtual dice or Pixels dice
                         (0, roll_executor_1.expectRolls)(rollRequest, gameSystem)
                             .then((data) => {
@@ -10177,8 +10182,9 @@ const expectResultForDice = (diceSize, diceCount) => __awaiter(void 0, void 0, v
     if ((0, integration_utils_1.isDebugEnabled)()) {
         console.log(`Requested rolls of ${diceCount}d${diceSize}`);
     }
-    const expectedRolls = new Array(diceCount);
-    expectedRolls.fill(new Promise((resolve, reject) => {
+    const expectedRolls = new Array(diceCount)
+        .fill(null)
+        .map(() => new Promise((resolve, reject) => {
         if ((0, integration_utils_1.isDebugEnabled)()) {
             console.log(`Waiting for a roll of 1d${diceSize}`);
         }
@@ -10540,43 +10546,43 @@ const handleDieRolled = (dieType, face, colorway, dieName, dieId) => {
     switch (dieType) {
         case "d4": {
             diceSize = 4;
-            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d4.shift();
+            listener = listeners.d4.shift();
             break;
         }
         case "d6pipped":
         case "d6": {
             diceSize = 6;
-            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d6.shift();
+            listener = listeners.d6.shift();
             break;
         }
         case "d8": {
             diceSize = 8;
-            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d8.shift();
+            listener = listeners.d8.shift();
             break;
         }
         case "d10": {
             diceSize = 10;
-            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d10.shift();
+            listener = listeners.d10.shift();
             break;
         }
         case "d00": {
             diceSize = 100;
-            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d00.shift();
+            listener = listeners.d00.shift();
             break;
         }
         case "d12": {
             diceSize = 12;
-            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d12.shift();
+            listener = listeners.d12.shift();
             break;
         }
         case "d20": {
             diceSize = 20;
-            listener = listeners === null || listeners === void 0 ? void 0 : listeners.d20.shift();
+            listener = listeners.d20.shift();
             break;
         }
         case "d6fudge": {
             diceSize = "F";
-            listener = listeners === null || listeners === void 0 ? void 0 : listeners.dF.shift();
+            listener = listeners.dF.shift();
             break;
         }
         default: {
@@ -10603,6 +10609,12 @@ const handleDieRolled = (dieType, face, colorway, dieName, dieId) => {
         };
     }
     if (listener && rollEvent.success) {
+        if ((0, integration_utils_1.isDebugEnabled)()) {
+            console.log({
+                description: "About to call roll listener",
+                listener,
+            });
+        }
         listener.callback(rollEvent);
         // @ts-ignore
         unsafeWindow.expectedRolls = listExpectedRolls();
@@ -11164,7 +11176,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getTranslation = void 0;
 const en = {
     ui: {
-        awaitingPixelsRoll: "Awaiting Pixels roll...",
+        notification: {
+            awaitingPixelsRoll: "Awaiting Pixels roll...",
+        },
         pixelsMenu: {
             button: {
                 title: "Pixels Dice",
@@ -11396,98 +11410,232 @@ const getD8Svg = () => getDiceSvg("dice-fab-d8", 22, 18);
 const getD10Svg = () => getDiceSvg("dice-fab-d10", 28, 18);
 const getD12Svg = () => getDiceSvg("dice-fab-d12", 28, 18);
 const getD20Svg = () => getDiceSvg("dice-fab-20", 26, 18);
+const getRollDiceHistoryCssClass = () => {
+    const { gameSystem } = (0, integration_utils_1.characterSheetInfo)();
+    switch (gameSystem) {
+        case "avatarlegends":
+            return "dice-roll-history";
+        case "daggerheart":
+            return "dice-history-main-container";
+        case "pathfinder2e":
+            return "dice-roll-history";
+        default:
+            return "dice-roll-history";
+    }
+    // TODO Check other systems
+};
 const addRollsExpectedNotification = (rollRequest) => {
-    var _a;
-    const notificationParents = unsafeWindow.document.getElementsByClassName("dice-roll-history");
+    const { gameSystem } = (0, integration_utils_1.characterSheetInfo)();
+    const notificationParents = unsafeWindow.document.getElementsByClassName(getRollDiceHistoryCssClass());
     if (notificationParents.length === 0) {
         if ((0, integration_utils_1.isDebugEnabled)()) {
             console.log("No dice roll history found to which a notification can be added.");
         }
         return undefined;
     }
-    const notificationTemplate = notificationParents[0].firstChild;
-    if (!notificationTemplate) {
-        if ((0, integration_utils_1.isDebugEnabled)()) {
-            console.log("The dice roll history is empty, no element can be cloned.", notificationParents[0]);
+    switch (gameSystem) {
+        case "avatarlegends":
+        case "pathfinder2e": {
+            (() => {
+                var _a;
+                const notificationTemplate = notificationParents[0].firstChild;
+                if (!notificationTemplate) {
+                    if ((0, integration_utils_1.isDebugEnabled)()) {
+                        console.log("The dice roll history is empty, no element can be cloned.", notificationParents[0]);
+                    }
+                    return undefined;
+                }
+                rollsExpectedNotification = notificationTemplate.cloneNode(true);
+                const titleRow = rollsExpectedNotification.firstChild;
+                // Change the title of the new element
+                const titleElement = titleRow.firstChild;
+                const titleText = (0, translations_1.getTranslation)("ui.notification.awaitingPixelsRoll", "en");
+                titleElement.innerHTML = titleText;
+                // Remove the "Result" title from the titleRow
+                const resultTitleElement = titleRow.lastChild;
+                if (resultTitleElement) {
+                    titleRow.removeChild(resultTitleElement);
+                }
+                // Set the expected rolls
+                const textRow = rollsExpectedNotification.children[1];
+                const mainText = textRow.firstChild;
+                mainText.innerHTML = rollRequest.stringify(false, ", ");
+                // Remove the "Result" element from the textRow
+                const resultElement = textRow.lastChild;
+                if (resultElement) {
+                    textRow.removeChild(resultElement);
+                }
+                // Set the remaining rolls
+                const diceRollRow = rollsExpectedNotification.lastChild;
+                const diceRollParent = diceRollRow.getElementsByClassName("dice-roll-details__dice")[0];
+                const newDiceRollIndicators = [];
+                for (const key in rollRequest) {
+                    if (!key.startsWith("_d")) {
+                        continue;
+                    }
+                    const getter = Object.getOwnPropertyDescriptor(rollRequest, key);
+                    if (getter === null || getter === void 0 ? void 0 : getter.value) {
+                        const diceIndicator = diceRollParent.firstChild.cloneNode(true);
+                        let svg;
+                        switch (key) {
+                            case "_d4": {
+                                svg = getD4Svg();
+                                break;
+                            }
+                            case "_d6": {
+                                svg = getD6Svg();
+                                break;
+                            }
+                            case "_d8": {
+                                svg = getD8Svg();
+                                break;
+                            }
+                            case "_d10": {
+                                svg = getD10Svg();
+                                break;
+                            }
+                            // We don't have a case where d00s are expected
+                            case "_d12": {
+                                svg = getD12Svg();
+                                break;
+                            }
+                            case "_d20": {
+                                svg = getD20Svg();
+                                break;
+                            }
+                            // We don't have a case where dFs are expected
+                            default: {
+                                console.error(`No svg for dice value ${key.substring(1)} known.`);
+                            }
+                        }
+                        if (svg) {
+                            const diceRollDetails = diceIndicator.firstChild;
+                            diceRollDetails.removeChild(diceRollDetails.firstChild);
+                            diceRollDetails.setAttribute("data-cy", `dice-roll-details-${key.substring(1)}-icon`);
+                            ((_a = diceRollDetails.lastChild) === null || _a === void 0 ? void 0 : _a.lastChild).innerHTML =
+                                `${getter.value} x`;
+                            diceRollDetails.append(svg);
+                            newDiceRollIndicators.push(diceIndicator);
+                        }
+                    }
+                }
+                diceRollParent.replaceChildren(...newDiceRollIndicators);
+                notificationParents[0].insertBefore(rollsExpectedNotification, notificationTemplate);
+            })();
+            break;
         }
-        return undefined;
-    }
-    rollsExpectedNotification = notificationTemplate.cloneNode(true);
-    const titleRow = rollsExpectedNotification.firstChild;
-    // Change the title of the new element
-    const titleElement = titleRow.firstChild;
-    const titleText = (0, translations_1.getTranslation)("ui.awaitingPixelsRoll", "en");
-    titleElement.innerHTML = titleText;
-    // Remove the "Result" title from the titleRow
-    const resultTitleElement = titleRow.lastChild;
-    if (resultTitleElement) {
-        titleRow.removeChild(resultTitleElement);
-    }
-    // Set the expected rolls
-    const textRow = rollsExpectedNotification.children[1];
-    const mainText = textRow.firstChild;
-    mainText.innerHTML = rollRequest.stringify(false, ", ");
-    // Remove the "Result" element from the textRow
-    const resultElement = textRow.lastChild;
-    if (resultElement) {
-        textRow.removeChild(resultElement);
-    }
-    // Set the remaining rolls
-    const diceRollRow = rollsExpectedNotification.lastChild;
-    const diceRollParent = diceRollRow.getElementsByClassName("dice-roll-details__dice")[0];
-    const newDiceRollIndicators = [];
-    for (const key in rollRequest) {
-        if (!key.startsWith("_d")) {
-            continue;
+        case "daggerheart": {
+            (() => {
+                var _a, _b, _c;
+                const notificationTemplate = notificationParents[0].lastChild;
+                if (!notificationTemplate) {
+                    if ((0, integration_utils_1.isDebugEnabled)()) {
+                        console.log("The dice roll history is empty, no element can be cloned.", notificationParents[0]);
+                    }
+                    return undefined;
+                }
+                rollsExpectedNotification = notificationTemplate.cloneNode(true);
+                // Remove the "With Hope" label if it's there
+                rollsExpectedNotification.classList.remove("dice-roller-history--roll-with-hope");
+                rollsExpectedNotification.classList.add("dice-roller-history--awaiting-pixels-roll");
+                rollsExpectedNotification.setAttribute("style", `
+					background: linear-gradient(180deg, rgb(62, 172, 194) 0%, rgb(121, 62, 194) 25%, rgb(245, 58, 37) 50%, rgb(245, 241, 27) 75%, rgb(124, 207, 128));
+					padding: 12px !important;
+					position: relative;
+					border-radius: 8px;
+					border: 1px solid #888888;
+					text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+				`);
+                // Now find and modify the inner container
+                const diceHistoryExpandedContainer = rollsExpectedNotification.getElementsByClassName("dice-history-expanded-container");
+                if (diceHistoryExpandedContainer.length === 0) {
+                    if ((0, integration_utils_1.isDebugEnabled)()) {
+                        console.log("There is no dice roll history expanced container, so the element cannot be edited.", notificationParents[0]);
+                    }
+                    return undefined;
+                }
+                const titleRow = (_a = diceHistoryExpandedContainer[0].firstChild) === null || _a === void 0 ? void 0 : _a.firstChild;
+                // Change the title of the new element
+                const historyItemCalculatedSource = titleRow.getElementsByClassName("history-item-calculated__value dice-history-item-name--source");
+                if (historyItemCalculatedSource.length > 0) {
+                    const titleText = (0, translations_1.getTranslation)("ui.notification.awaitingPixelsRoll", "en");
+                    historyItemCalculatedSource[0].innerHTML = titleText;
+                }
+                const historyItemCalculatedValue = titleRow.getElementsByClassName("history-item-calculated__value dice-history-item-name");
+                if (historyItemCalculatedValue.length) {
+                    historyItemCalculatedValue[0].innerHTML = rollRequest.stringify(false, ", ");
+                }
+                // Remove the reroll and result elements
+                const diceRollerButton = diceHistoryExpandedContainer[0].getElementsByClassName("dice-roller-button");
+                if (diceRollerButton.length > 0) {
+                    (_b = diceRollerButton[0].parentElement) === null || _b === void 0 ? void 0 : _b.removeChild(diceRollerButton[0]);
+                }
+                const totalResultContainer = diceHistoryExpandedContainer[0].getElementsByClassName("dice-history-item-total-result-container");
+                if (totalResultContainer.length > 0) {
+                    (_c = totalResultContainer[0].parentElement) === null || _c === void 0 ? void 0 : _c.removeChild(totalResultContainer[0]);
+                }
+                // Display the dice to be rolled
+                const historyItemResult = rollsExpectedNotification.getElementsByClassName("history-item-result");
+                if (historyItemResult) {
+                    const createDieSymbolFigure = (dieSize) => {
+                        const dieFigure = unsafeWindow.document.createElement("div");
+                        dieFigure.classList.add("MuiGrid-root", "MuiGrid-item", "history-item-result__die", `history-item-result__die--${dieSize}`, "history-item-result__die--7", "dice-history-result-dice");
+                        dieFigure.setAttribute("style", `
+							box-sizing: border-box;
+							margin: 0px;
+							-webkit-box-align: center;
+							align-items: center;
+						`);
+                        const figure = unsafeWindow.document.createElement("figure");
+                        figure.classList.add("history-item-result__image-container", "MuiBox-root");
+                        figure.setAttribute("style", `
+							background: url(https://content.demiplane.com/nexus/daggerheart/character/dice/dh-${dieSize}-die.png);
+							background-size: auto 100%;
+							background-position: center;
+							background-repeat: no-repeat;
+						`);
+                        dieFigure.appendChild(figure);
+                        // This is left empty for the time being, though it could in future be filled with the actually rolled result as a kind of live update.
+                        const resultNumber = unsafeWindow.document.createElement("p");
+                        resultNumber.classList.add("MuiTypography-root", "MuiTypography-body1", "history-item-result__label", `expected-pixels-roll-${dieSize}`);
+                        resultNumber.setAttribute("style", `
+							position: absolute;
+							padding-top: 4.5px !important;
+							font-weight: 400;
+						`);
+                        dieFigure.appendChild(resultNumber);
+                        return dieFigure;
+                    };
+                    const createDieSymbolFigures = (count, dieSize) => new Array(count)
+                        // We have to create mock elements to be able to use the map function
+                        .fill(null)
+                        .map(() => createDieSymbolFigure(dieSize));
+                    const expectedD4s = createDieSymbolFigures(rollRequest.d4, "d4");
+                    const expectedD6s = createDieSymbolFigures(rollRequest.d6, "d6");
+                    const expectedD8s = createDieSymbolFigures(rollRequest.d8, "d8");
+                    const expectedD10s = createDieSymbolFigures(rollRequest.d10, "d10");
+                    const expectedD12s = createDieSymbolFigures(rollRequest.d12, "d12");
+                    const expectedD20s = createDieSymbolFigures(rollRequest.d20, "d20");
+                    historyItemResult[0].replaceChildren(...expectedD4s, ...expectedD6s, ...expectedD8s, ...expectedD10s, ...expectedD12s, ...expectedD20s);
+                }
+                // Remove the static modifier
+                const staticModifier = rollsExpectedNotification.getElementsByClassName("dice-history-item-static-modifier");
+                if (staticModifier.length > 0) {
+                    if (rollRequest.unusedParts) {
+                        staticModifier[0].innerHTML = `+${rollRequest.unusedParts}`.replace(/%2B/g, "+");
+                    }
+                    else {
+                        staticModifier[0].innerHTML = "";
+                    }
+                }
+            })();
+            break;
         }
-        const getter = Object.getOwnPropertyDescriptor(rollRequest, key);
-        if (getter === null || getter === void 0 ? void 0 : getter.value) {
-            const diceIndicator = diceRollParent.firstChild.cloneNode(true);
-            let svg;
-            switch (key) {
-                case "_d4": {
-                    svg = getD4Svg();
-                    break;
-                }
-                case "_d6": {
-                    svg = getD6Svg();
-                    break;
-                }
-                case "_d8": {
-                    svg = getD8Svg();
-                    break;
-                }
-                case "_d10": {
-                    svg = getD10Svg();
-                    break;
-                }
-                // TODO We don't yet have a case where d00s are expected
-                case "_d12": {
-                    svg = getD12Svg();
-                    break;
-                }
-                case "_d20": {
-                    svg = getD20Svg();
-                    break;
-                }
-                // TODO We don't yet have a case where dFs are expected
-                default: {
-                    console.error(`No svg for dice value ${key.substring(1)} known.`);
-                }
-            }
-            if (svg) {
-                const diceRollDetails = diceIndicator.firstChild;
-                diceRollDetails.removeChild(diceRollDetails.firstChild);
-                diceRollDetails.setAttribute("data-cy", `dice-roll-details-${key.substring(1)}-icon`);
-                ((_a = diceRollDetails.lastChild) === null || _a === void 0 ? void 0 : _a.lastChild).innerHTML =
-                    `${getter.value} x`;
-                diceRollDetails.append(svg);
-                newDiceRollIndicators.push(diceIndicator);
-            }
-        }
     }
-    diceRollParent.replaceChildren(...newDiceRollIndicators);
-    notificationParents[0].insertBefore(rollsExpectedNotification, notificationTemplate);
+    // Show the notification
+    if (rollsExpectedNotification) {
+        notificationParents[0].appendChild(rollsExpectedNotification);
+    }
     return rollsExpectedNotification;
 };
 exports.addRollsExpectedNotification = addRollsExpectedNotification;
@@ -11498,7 +11646,7 @@ const removeRollsExpectedNotification = (element = rollsExpectedNotification) =>
         }
         return;
     }
-    const notificationParents = unsafeWindow.document.getElementsByClassName("dice-roll-history");
+    const notificationParents = unsafeWindow.document.getElementsByClassName(getRollDiceHistoryCssClass());
     if (notificationParents.length === 0) {
         if ((0, integration_utils_1.isDebugEnabled)()) {
             console.log("No dice roll history found from which a notification can be removed.");
@@ -11535,6 +11683,7 @@ exports.setupPixelsMenu = void 0;
 const integration_utils_1 = __webpack_require__(530);
 const roll_handler_1 = __webpack_require__(952);
 const translations_1 = __webpack_require__(414);
+// FIXME Add a way to enable or disable Pixels for a given character in the GUI
 const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     const pixelsTooltipCss = `
@@ -11679,7 +11828,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
             border-radius: 4px;
             -webkit-transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
             transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
-            background: linear-gradient(60deg, #3eacc2 0%, #793ec2 25%, #f53a25 50%, #f5f11b 75%, #7ccf80);
+            background: linear-gradient(60deg, rgba(62, 172, 194, 0.5) 0%, rgba(121, 62, 194, 0.5) 25%, rgba(245, 58, 37, 0.5) 50%, rgba(245, 241, 27, 0.5) 75%, rgba(124, 207, 128, 0.5));
             height: 38px;
             border-width: 1px !important;
             border-style: solid !important;

@@ -101,31 +101,35 @@ const expectResultForDice = async (
 	if (isDebugEnabled()) {
 		console.log(`Requested rolls of ${diceCount}d${diceSize}`);
 	}
-	const expectedRolls: Promise<SingleRollResult>[] = new Array(diceCount);
-	expectedRolls.fill(
-		new Promise((resolve, reject) => {
-			if (isDebugEnabled()) {
-				console.log(`Waiting for a roll of 1d${diceSize}`);
-			}
-			registerRollListener({
-				diceSize,
-				callback: (rollEvent) => {
+	const expectedRolls: Promise<SingleRollResult>[] = new Array<
+		SingleRollResult[]
+	>(diceCount)
+		.fill(null as unknown as SingleRollResult[])
+		.map(
+			() =>
+				new Promise((resolve, reject) => {
 					if (isDebugEnabled()) {
-						console.log({
-							description: "Roll event occurred",
-							rollEvent,
-						});
+						console.log(`Waiting for a roll of 1d${diceSize}`);
 					}
-					if (rollEvent.success) {
-						// TODO Do more with the result
-						resolve(rollEvent.face);
-					} else {
-						reject();
-					}
-				},
-			});
-		}),
-	);
+					registerRollListener({
+						diceSize,
+						callback: (rollEvent) => {
+							if (isDebugEnabled()) {
+								console.log({
+									description: "Roll event occurred",
+									rollEvent,
+								});
+							}
+							if (rollEvent.success) {
+								// TODO Do more with the result
+								resolve(rollEvent.face);
+							} else {
+								reject();
+							}
+						},
+					});
+				}),
+		);
 	return {
 		diceSize,
 		results: await Promise.all(expectedRolls),

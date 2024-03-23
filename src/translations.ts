@@ -6,7 +6,9 @@ type TranslationObject =
 
 interface Translations {
 	ui: {
-		awaitingPixelsRoll: string;
+		notification: {
+			awaitingPixelsRoll: string;
+		};
 		pixelsMenu: {
 			button: {
 				title: string;
@@ -31,7 +33,9 @@ type SupportedLanguages = "en";
 
 const en: Translations & TranslationObject = {
 	ui: {
-		awaitingPixelsRoll: "Awaiting Pixels roll...",
+		notification: {
+			awaitingPixelsRoll: "Awaiting Pixels roll...",
+		},
 		pixelsMenu: {
 			button: {
 				title: "Pixels Dice",

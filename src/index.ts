@@ -100,7 +100,11 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 								false,
 							)}'`,
 						);
-						addRollsExpectedNotification(rollRequest);
+						try {
+							addRollsExpectedNotification(rollRequest);
+						} catch (e) {
+							console.error("Could not add expected rolls notification", e);
+						}
 
 						// Do not send the request yet, but instead request the results from virtual dice or Pixels dice
 						expectRolls(rollRequest, gameSystem)

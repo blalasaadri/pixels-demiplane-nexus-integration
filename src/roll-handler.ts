@@ -156,43 +156,43 @@ const handleDieRolled = (
 	switch (dieType) {
 		case "d4": {
 			diceSize = 4;
-			listener = listeners?.d4.shift();
+			listener = listeners.d4.shift();
 			break;
 		}
 		case "d6pipped":
 		case "d6": {
 			diceSize = 6;
-			listener = listeners?.d6.shift();
+			listener = listeners.d6.shift();
 			break;
 		}
 		case "d8": {
 			diceSize = 8;
-			listener = listeners?.d8.shift();
+			listener = listeners.d8.shift();
 			break;
 		}
 		case "d10": {
 			diceSize = 10;
-			listener = listeners?.d10.shift();
+			listener = listeners.d10.shift();
 			break;
 		}
 		case "d00": {
 			diceSize = 100;
-			listener = listeners?.d00.shift();
+			listener = listeners.d00.shift();
 			break;
 		}
 		case "d12": {
 			diceSize = 12;
-			listener = listeners?.d12.shift();
+			listener = listeners.d12.shift();
 			break;
 		}
 		case "d20": {
 			diceSize = 20;
-			listener = listeners?.d20.shift();
+			listener = listeners.d20.shift();
 			break;
 		}
 		case "d6fudge": {
 			diceSize = "F";
-			listener = listeners?.dF.shift();
+			listener = listeners.dF.shift();
 			break;
 		}
 		default: {
@@ -218,6 +218,12 @@ const handleDieRolled = (
 		};
 	}
 	if (listener && rollEvent.success) {
+		if (isDebugEnabled()) {
+			console.log({
+				description: "About to call roll listener",
+				listener,
+			});
+		}
 		listener.callback(rollEvent);
 
 		// @ts-ignore
