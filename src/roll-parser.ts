@@ -1,4 +1,7 @@
-import { integrationEnabledForDice, isDebugEnabled } from "./integration-utils";
+import {
+	getIntegrationEnabledForDice,
+	isDebugEnabled,
+} from "./integration-utils";
 import { RollRequest } from "./types";
 
 const extractRollParts = (rollQuery: string): string[] => {
@@ -37,7 +40,7 @@ const modifierRegex = /^(?<count>-?\d+)$/;
 export const parseRollRequest = (rollQuery: string): RollRequest => {
 	const rollParts = extractRollParts(rollQuery);
 
-	const enabledForDice = integrationEnabledForDice();
+	const enabledForDice = getIntegrationEnabledForDice();
 
 	const rollRequest = new RollRequest();
 	if (enabledForDice.d4) {

@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.0.7
+// @version 0.0.8
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -9956,7 +9956,7 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.setPixelsIntegrationEnabledForDieType = exports.updateIntegrationEnabledForDice = exports.integrationEnabledForDice = exports.isDebugEnabled = exports.toggleEnabledForCharacter = exports.setEnabledForCharacter = exports.isEnabledForCharacter = exports.registerEnabledForCharacterListener = exports.characterSheetInfo = void 0;
+exports.setPixelsIntegrationEnabledForDieType = exports.updateIntegrationEnabledForDice = exports.getIntegrationEnabledForDice = exports.registerIntegrationForDiceEnabledListener = exports.isDebugEnabled = exports.toggleEnabledForCharacter = exports.setEnabledForCharacter = exports.isEnabledForCharacter = exports.registerEnabledForCharacterListener = exports.characterSheetInfo = void 0;
 const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/(?<gameSystem>[a-zA-Z0-9-]+)\/character-sheet\/(?<characterId>[a-z0-9-]+)/;
 const characterSheetInfo = () => {
     var _a, _b;
@@ -10039,8 +10039,13 @@ unsafeWindow.togglePixelsItegrationDebug = () => {
     unsafeWindow.localStorage.setItem(integrationDebugStorageName, `${!integrationDebugPreviouslyEnabled}`);
     return !integrationDebugPreviouslyEnabled;
 };
+const integrationForDiceEnabledListeners = [];
+const registerIntegrationForDiceEnabledListener = (listerner) => {
+    integrationForDiceEnabledListeners.push(listerner);
+};
+exports.registerIntegrationForDiceEnabledListener = registerIntegrationForDiceEnabledListener;
 const integrationEnabledForDiceStorageName = "pixelsIntegrationEnabledForDice";
-const integrationEnabledForDice = () => {
+const getIntegrationEnabledForDice = () => {
     const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledForDiceStorageName);
     let enabledObject;
     if (enabledString) {
@@ -10062,7 +10067,7 @@ const integrationEnabledForDice = () => {
     }
     return enabledObject;
 };
-exports.integrationEnabledForDice = integrationEnabledForDice;
+exports.getIntegrationEnabledForDice = getIntegrationEnabledForDice;
 const updateIntegrationEnabledForDice = (updatedSettings) => {
     const previouslyEnabledString = unsafeWindow.localStorage.getItem(integrationEnabledForDiceStorageName);
     let previouslyEnabledObject;
@@ -10084,6 +10089,48 @@ const updateIntegrationEnabledForDice = (updatedSettings) => {
     }
     const newlyEnabledObject = Object.assign(Object.assign({}, previouslyEnabledObject), updatedSettings);
     unsafeWindow.localStorage.setItem(integrationEnabledForDiceStorageName, JSON.stringify(newlyEnabledObject));
+    for (const listener of integrationForDiceEnabledListeners) {
+        const updatedForDieSizes = [];
+        for (const key of Object.keys(updatedSettings)) {
+            switch (key) {
+                case "d4": {
+                    updatedForDieSizes.push("d4");
+                    break;
+                }
+                case "d6": {
+                    updatedForDieSizes.push("d6");
+                    break;
+                }
+                case "d8": {
+                    updatedForDieSizes.push("d8");
+                    break;
+                }
+                case "d10": {
+                    updatedForDieSizes.push("d10");
+                    break;
+                }
+                case "d00": {
+                    updatedForDieSizes.push("d00");
+                    break;
+                }
+                case "d12": {
+                    updatedForDieSizes.push("d12");
+                    break;
+                }
+                case "d20": {
+                    updatedForDieSizes.push("d20");
+                    break;
+                }
+                case "dF": {
+                    updatedForDieSizes.push("d6fudge");
+                    break;
+                }
+            }
+        }
+        if (!listener.predicate || listener.predicate(updatedForDieSizes)) {
+            listener.callback(newlyEnabledObject);
+        }
+    }
     return newlyEnabledObject;
 };
 exports.updateIntegrationEnabledForDice = updateIntegrationEnabledForDice;
@@ -11107,7 +11154,7 @@ const modifierRegex = /^(?<count>-?\d+)$/;
  */
 const parseRollRequest = (rollQuery) => {
     const rollParts = extractRollParts(rollQuery);
-    const enabledForDice = (0, integration_utils_1.integrationEnabledForDice)();
+    const enabledForDice = (0, integration_utils_1.getIntegrationEnabledForDice)();
     const rollRequest = new types_1.RollRequest();
     if (enabledForDice.d4) {
         rollRequest.d4 = countDiceMatchingRegex(rollParts, d4Regex);
@@ -12253,73 +12300,74 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                 const pixelsDiceOverviewBody = unsafeWindow.document.createElement("div");
                 pixelsDiceOverviewBody.classList.add("MuiGrid-root", "MuiGrid-container", "css-pixels-dice-overview-body");
                 pixelsDiceOverviewContainer.appendChild(pixelsDiceOverviewBody);
-                const currentlyConnectedDice = (0, roll_handler_1.getCurrentlyConnectedDice)();
                 const createDieImageTag = (cssClass, imageDieType) => {
-                    const determineColorVariant = (connectedDice) => {
-                        let isAtLeastOneConnected = false;
+                    const determineColorVariant = (integrationEnabledForDice) => {
+                        let isEnabledForDieType = false;
                         switch (imageDieType) {
                             case "d4": {
-                                isAtLeastOneConnected = connectedDice.d4.length > 0;
+                                isEnabledForDieType = integrationEnabledForDice.d4;
                                 break;
                             }
                             case "d6": {
-                                isAtLeastOneConnected = connectedDice.d6.length > 0;
+                                isEnabledForDieType = integrationEnabledForDice.d6;
                                 break;
                             }
                             case "d8": {
-                                isAtLeastOneConnected = connectedDice.d8.length > 0;
+                                isEnabledForDieType = integrationEnabledForDice.d8;
                                 break;
                             }
                             case "d10": {
-                                isAtLeastOneConnected = connectedDice.d10.length > 0;
+                                isEnabledForDieType = integrationEnabledForDice.d10;
                                 break;
                             }
                             case "d00": {
-                                isAtLeastOneConnected = connectedDice.d00.length > 0;
+                                isEnabledForDieType = integrationEnabledForDice.d00;
                                 break;
                             }
                             case "d12": {
-                                isAtLeastOneConnected = connectedDice.d12.length > 0;
+                                isEnabledForDieType = integrationEnabledForDice.d12;
                                 break;
                             }
                             case "d20": {
-                                isAtLeastOneConnected = connectedDice.d20.length > 0;
+                                isEnabledForDieType = integrationEnabledForDice.d20;
                                 break;
                             }
                             case "dF": {
-                                isAtLeastOneConnected = connectedDice.dF.length > 0;
+                                isEnabledForDieType = integrationEnabledForDice.dF;
                                 break;
                             }
                         }
-                        return isAtLeastOneConnected ? "rainbow" : "white";
+                        return isEnabledForDieType ? "rainbow" : "white";
                     };
                     const dieImage = unsafeWindow.document.createElement("img");
                     dieImage.classList.add(cssClass);
-                    dieImage.setAttribute("src", `https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/${imageDieType}_${determineColorVariant(currentlyConnectedDice)}.svg`);
+                    const integrationEnabledForDice = (0, integration_utils_1.getIntegrationEnabledForDice)();
+                    const colorVariant = determineColorVariant(integrationEnabledForDice);
+                    dieImage.setAttribute("src", `https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/${imageDieType}_${colorVariant}.svg`);
                     dieImage.setAttribute("alt", `pixels ${imageDieType}`);
-                    (0, roll_handler_1.registerDiceConnectionListener)({
-                        predicate: ({ dieType: connectedDieType }) => {
+                    (0, integration_utils_1.registerIntegrationForDiceEnabledListener)({
+                        predicate: (dieSizes) => {
                             switch (imageDieType) {
                                 case "d4":
-                                    return connectedDieType === "d4";
+                                    return !!dieSizes.find((size) => size === "d4");
                                 case "d6":
-                                    return (connectedDieType === "d6" || connectedDieType === "d6pipped");
+                                    return !!dieSizes.find((size) => size === "d6" || size === "d6pipped");
                                 case "d8":
-                                    return connectedDieType === "d8";
+                                    return !!dieSizes.find((size) => size === "d8");
                                 case "d10":
-                                    return connectedDieType === "d10";
+                                    return !!dieSizes.find((size) => size === "d10");
                                 case "d00":
-                                    return connectedDieType === "d00";
+                                    return !!dieSizes.find((size) => size === "d00");
                                 case "d12":
-                                    return connectedDieType === "d12";
+                                    return !!dieSizes.find((size) => size === "d12");
                                 case "d20":
-                                    return connectedDieType === "d20";
+                                    return !!dieSizes.find((size) => size === "d20");
                                 case "dF":
-                                    return connectedDieType === "d6fudge";
+                                    return !!dieSizes.find((size) => size === "d6fudge");
                             }
                         },
-                        callback: (connectedDice) => __awaiter(void 0, void 0, void 0, function* () {
-                            const color = determineColorVariant(connectedDice);
+                        callback: (integrationEnabledForDice) => __awaiter(void 0, void 0, void 0, function* () {
+                            const color = determineColorVariant(integrationEnabledForDice);
                             dieImage.setAttribute("src", `https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/${imageDieType}_${color}.svg`);
                         }),
                     });
@@ -12339,6 +12387,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                     }
                     return infoTags;
                 };
+                const currentlyConnectedDice = (0, roll_handler_1.getCurrentlyConnectedDice)();
                 const addDiceInfoTags = (parent, diePredicate, diceSelector) => {
                     const addDieInfo = (die, tag) => {
                         parent.appendChild(tag);

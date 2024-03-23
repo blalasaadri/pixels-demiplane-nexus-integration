@@ -1,7 +1,10 @@
 import {
+	type IntegrationEnabledForDice,
+	getIntegrationEnabledForDice,
 	isDebugEnabled,
 	isEnabledForCharacter,
 	registerEnabledForCharacterListener,
+	registerIntegrationForDiceEnabledListener,
 } from "./integration-utils";
 import {
 	type ConnectedDice,
@@ -757,8 +760,6 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				);
 				pixelsDiceOverviewContainer.appendChild(pixelsDiceOverviewBody);
 
-				const currentlyConnectedDice = getCurrentlyConnectedDice();
-
 				const createDieImageTag = (
 					cssClass: string,
 					imageDieType:
@@ -772,80 +773,80 @@ export const setupPixelsMenu = async (): Promise<void> => {
 						| "dF",
 				) => {
 					const determineColorVariant = (
-						connectedDice: ConnectedDice,
+						integrationEnabledForDice: IntegrationEnabledForDice,
 					): "white" | "rainbow" => {
-						let isAtLeastOneConnected = false;
+						let isEnabledForDieType = false;
 						switch (imageDieType) {
 							case "d4": {
-								isAtLeastOneConnected = connectedDice.d4.length > 0;
+								isEnabledForDieType = integrationEnabledForDice.d4;
 								break;
 							}
 							case "d6": {
-								isAtLeastOneConnected = connectedDice.d6.length > 0;
+								isEnabledForDieType = integrationEnabledForDice.d6;
 								break;
 							}
 							case "d8": {
-								isAtLeastOneConnected = connectedDice.d8.length > 0;
+								isEnabledForDieType = integrationEnabledForDice.d8;
 								break;
 							}
 							case "d10": {
-								isAtLeastOneConnected = connectedDice.d10.length > 0;
+								isEnabledForDieType = integrationEnabledForDice.d10;
 								break;
 							}
 							case "d00": {
-								isAtLeastOneConnected = connectedDice.d00.length > 0;
+								isEnabledForDieType = integrationEnabledForDice.d00;
 								break;
 							}
 							case "d12": {
-								isAtLeastOneConnected = connectedDice.d12.length > 0;
+								isEnabledForDieType = integrationEnabledForDice.d12;
 								break;
 							}
 							case "d20": {
-								isAtLeastOneConnected = connectedDice.d20.length > 0;
+								isEnabledForDieType = integrationEnabledForDice.d20;
 								break;
 							}
 							case "dF": {
-								isAtLeastOneConnected = connectedDice.dF.length > 0;
+								isEnabledForDieType = integrationEnabledForDice.dF;
 								break;
 							}
 						}
-						return isAtLeastOneConnected ? "rainbow" : "white";
+						return isEnabledForDieType ? "rainbow" : "white";
 					};
 					const dieImage = unsafeWindow.document.createElement("img");
 					dieImage.classList.add(cssClass);
+					const integrationEnabledForDice = getIntegrationEnabledForDice();
+					const colorVariant = determineColorVariant(integrationEnabledForDice);
 					dieImage.setAttribute(
 						"src",
-						`https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/${imageDieType}_${determineColorVariant(
-							currentlyConnectedDice,
-						)}.svg`,
+						`https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/${imageDieType}_${colorVariant}.svg`,
 					);
 					dieImage.setAttribute("alt", `pixels ${imageDieType}`);
 
-					registerDiceConnectionListener({
-						predicate: ({ dieType: connectedDieType }) => {
+					registerIntegrationForDiceEnabledListener({
+						predicate: (dieSizes) => {
 							switch (imageDieType) {
 								case "d4":
-									return connectedDieType === "d4";
+									return !!dieSizes.find((size) => size === "d4");
 								case "d6":
-									return (
-										connectedDieType === "d6" || connectedDieType === "d6pipped"
+									return !!dieSizes.find(
+										(size) => size === "d6" || size === "d6pipped",
 									);
 								case "d8":
-									return connectedDieType === "d8";
+									return !!dieSizes.find((size) => size === "d8");
 								case "d10":
-									return connectedDieType === "d10";
+									return !!dieSizes.find((size) => size === "d10");
 								case "d00":
-									return connectedDieType === "d00";
+									return !!dieSizes.find((size) => size === "d00");
 								case "d12":
-									return connectedDieType === "d12";
+									return !!dieSizes.find((size) => size === "d12");
 								case "d20":
-									return connectedDieType === "d20";
+									return !!dieSizes.find((size) => size === "d20");
 								case "dF":
-									return connectedDieType === "d6fudge";
+									return !!dieSizes.find((size) => size === "d6fudge");
 							}
 						},
-						callback: async (connectedDice) => {
-							const color = determineColorVariant(connectedDice);
+						callback: async (integrationEnabledForDice) => {
+							const color = determineColorVariant(integrationEnabledForDice);
 							dieImage.setAttribute(
 								"src",
 								`https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/${imageDieType}_${color}.svg`,
@@ -873,6 +874,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					return infoTags;
 				};
 
+				const currentlyConnectedDice = getCurrentlyConnectedDice();
 				const addDiceInfoTags = (
 					parent: HTMLDivElement,
 					diePredicate: (connectedDie: ConnectedDie) => boolean,

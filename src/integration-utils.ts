@@ -129,8 +129,22 @@ export interface IntegrationEnabledForDice {
 	dF: boolean;
 }
 
+export interface IntegrationEnabledForDieListener {
+	predicate?: (dieSizes: PixelDieType[]) => boolean;
+	callback: (integrationEnabledForDice: IntegrationEnabledForDice) => void;
+}
+
+const integrationForDiceEnabledListeners: IntegrationEnabledForDieListener[] =
+	[];
+
+export const registerIntegrationForDiceEnabledListener = (
+	listerner: IntegrationEnabledForDieListener,
+): void => {
+	integrationForDiceEnabledListeners.push(listerner);
+};
+
 const integrationEnabledForDiceStorageName = "pixelsIntegrationEnabledForDice";
-export const integrationEnabledForDice = (): IntegrationEnabledForDice => {
+export const getIntegrationEnabledForDice = (): IntegrationEnabledForDice => {
 	const enabledString = unsafeWindow.localStorage.getItem(
 		integrationEnabledForDiceStorageName,
 	);
@@ -187,6 +201,50 @@ export const updateIntegrationEnabledForDice = (
 		integrationEnabledForDiceStorageName,
 		JSON.stringify(newlyEnabledObject),
 	);
+
+	for (const listener of integrationForDiceEnabledListeners) {
+		const updatedForDieSizes: PixelDieType[] = [];
+		for (const key of Object.keys(updatedSettings)) {
+			switch (key) {
+				case "d4": {
+					updatedForDieSizes.push("d4");
+					break;
+				}
+				case "d6": {
+					updatedForDieSizes.push("d6");
+					break;
+				}
+				case "d8": {
+					updatedForDieSizes.push("d8");
+					break;
+				}
+				case "d10": {
+					updatedForDieSizes.push("d10");
+					break;
+				}
+				case "d00": {
+					updatedForDieSizes.push("d00");
+					break;
+				}
+				case "d12": {
+					updatedForDieSizes.push("d12");
+					break;
+				}
+				case "d20": {
+					updatedForDieSizes.push("d20");
+					break;
+				}
+				case "dF": {
+					updatedForDieSizes.push("d6fudge");
+					break;
+				}
+			}
+		}
+		if (!listener.predicate || listener.predicate(updatedForDieSizes)) {
+			listener.callback(newlyEnabledObject);
+		}
+	}
+
 	return newlyEnabledObject;
 };
 
