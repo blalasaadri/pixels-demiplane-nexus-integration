@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.0.6
+// @version 0.0.7
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -12062,12 +12062,13 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
     pixelsMenuButton.setAttribute("aria-label", buttonAriaLabel);
     pixelsMenuButton.setAttribute("data-cy", "top-nav-nexus-pixels-menu-btn");
     // Add an onClick handler to the button. This will refer to a global function.
-    pixelsMenuButton.setAttribute("onclick", "pixelsIntegrationOpenPixelsMenu()");
+    pixelsMenuButton.setAttribute("onclick", "pixelsIntegrationTogglePixelsMenu(event)");
     let pixelsMenuTooltip;
-    const clickHandler = () => {
+    const pixelsMenuButtonClickHandler = (e) => {
         var _a, _b;
+        e === null || e === void 0 ? void 0 : e.stopPropagation();
         if ((0, integration_utils_1.isDebugEnabled)()) {
-            console.log("Pixels dice button clicked");
+            console.log("Pixels dice menu toggled");
         }
         // Set the "aria-expanded" attribute
         const expandedBefore = pixelsMenuButton.getAttribute("aria-expanded") === "true";
@@ -12386,7 +12387,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
         }
     };
     // @ts-ignore
-    unsafeWindow.pixelsIntegrationOpenPixelsMenu = clickHandler;
+    unsafeWindow.pixelsIntegrationTogglePixelsMenu = pixelsMenuButtonClickHandler;
     // @ts-ignore
     unsafeWindow.pixelsIntegrationConnectToPixelsDie = roll_handler_1.connectToDie;
     // Insert our new element as the last menu item
@@ -12397,6 +12398,31 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
     unsafeWindow.document
         .getElementsByTagName("head")[0]
         .appendChild(pixelsMenuStyleTag);
+    // Add a listener to close the menu if anything is clicked outside of the menu
+    unsafeWindow.document.addEventListener("click", (e) => {
+        const pixelMenu = unsafeWindow.document.getElementsByClassName("nexus-pixels-dice-menu");
+        // If the menu isn't visible, it won't proceed from here on.
+        if (pixelMenu.length > 0) {
+            // Check whether we're clicking directly in the pixels menu or on a child element of the pixels menu
+            const targetIsPixelsMenu = (target) => {
+                if (target.classList.contains("nexus-pixels-dice-menu") ||
+                    target.classList.contains("top-nav-nexus-pixels-menu-btn")) {
+                    return true;
+                }
+                if (target.tagName === "body") {
+                    return false;
+                }
+                const parent = target.parentElement;
+                if (!parent) {
+                    return false;
+                }
+                return targetIsPixelsMenu(target.parentElement);
+            };
+            if (!targetIsPixelsMenu(e.target)) {
+                pixelsMenuButtonClickHandler();
+            }
+        }
+    });
 });
 exports.setupPixelsMenu = setupPixelsMenu;
 

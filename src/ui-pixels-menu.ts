@@ -8,6 +8,8 @@ import {
 } from "./roll-handler";
 import { getTranslation } from "./translations";
 
+// FIXME Add a way to enable or disable Pixels for a given character in the GUI
+
 export const setupPixelsMenu = async (): Promise<void> => {
 	const pixelsTooltipCss = `
         /* Pixels tooltip menu */
@@ -396,12 +398,16 @@ export const setupPixelsMenu = async (): Promise<void> => {
 	pixelsMenuButton.setAttribute("data-cy", "top-nav-nexus-pixels-menu-btn");
 
 	// Add an onClick handler to the button. This will refer to a global function.
-	pixelsMenuButton.setAttribute("onclick", "pixelsIntegrationOpenPixelsMenu()");
+	pixelsMenuButton.setAttribute(
+		"onclick",
+		"pixelsIntegrationTogglePixelsMenu(event)",
+	);
 
 	let pixelsMenuTooltip: HTMLDivElement | undefined;
-	const clickHandler = (): void => {
+	const pixelsMenuButtonClickHandler = (e?: PointerEvent): void => {
+		e?.stopPropagation();
 		if (isDebugEnabled()) {
-			console.log("Pixels dice button clicked");
+			console.log("Pixels dice menu toggled");
 		}
 		// Set the "aria-expanded" attribute
 		const expandedBefore =
@@ -1035,7 +1041,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 		}
 	};
 	// @ts-ignore
-	unsafeWindow.pixelsIntegrationOpenPixelsMenu = clickHandler;
+	unsafeWindow.pixelsIntegrationTogglePixelsMenu = pixelsMenuButtonClickHandler;
 	// @ts-ignore
 	unsafeWindow.pixelsIntegrationConnectToPixelsDie = connectToDie;
 
@@ -1051,4 +1057,34 @@ export const setupPixelsMenu = async (): Promise<void> => {
 	unsafeWindow.document
 		.getElementsByTagName("head")[0]
 		.appendChild(pixelsMenuStyleTag);
+
+	// Add a listener to close the menu if anything is clicked outside of the menu
+	unsafeWindow.document.addEventListener("click", (e: MouseEvent) => {
+		const pixelMenu = unsafeWindow.document.getElementsByClassName(
+			"nexus-pixels-dice-menu",
+		);
+		// If the menu isn't visible, it won't proceed from here on.
+		if (pixelMenu.length > 0) {
+			// Check whether we're clicking directly in the pixels menu or on a child element of the pixels menu
+			const targetIsPixelsMenu = (target: Element): boolean => {
+				if (
+					target.classList.contains("nexus-pixels-dice-menu") ||
+					target.classList.contains("top-nav-nexus-pixels-menu-btn")
+				) {
+					return true;
+				}
+				if (target.tagName === "body") {
+					return false;
+				}
+				const parent = target.parentElement;
+				if (!parent) {
+					return false;
+				}
+				return targetIsPixelsMenu(target.parentElement);
+			};
+			if (!targetIsPixelsMenu(e.target as Element)) {
+				pixelsMenuButtonClickHandler();
+			}
+		}
+	});
 };

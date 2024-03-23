@@ -1,6 +1,6 @@
 {
   "name": "pixels-demiplane-nexus-integration",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.",
   "author": "blalasaadri",
   "license": "MIT",
