@@ -355,10 +355,16 @@ export const setupPixelsMenu = async (): Promise<void> => {
 			padding-bottom: 10px;
 		}
 
-		.css-pixels-dice-overview-dice-box img {
+		.css-pixels-dice-overview-dice-box button {
 			display: block;
 			margin-left: auto;
 			margin-right: auto;
+			background: transparent;
+			border-radius: 10px;
+			padding: 6px;
+			margin-bottom: 6px;
+			border-style: solid;
+			cursor: pointer;
 		}
 
 		.css-pixels-dice-overview-die-info {
@@ -760,7 +766,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				);
 				pixelsDiceOverviewContainer.appendChild(pixelsDiceOverviewBody);
 
-				const createDieImageTag = (
+				const createDieImageButton = (
 					cssClass: string,
 					imageDieType:
 						| "d4"
@@ -772,6 +778,12 @@ export const setupPixelsMenu = async (): Promise<void> => {
 						| "d20"
 						| "dF",
 				) => {
+					const dieImageButton = unsafeWindow.document.createElement("button");
+					dieImageButton.setAttribute(
+						"onclick",
+						`togglePixelsIntegrationForDieType("${imageDieType}")`,
+					);
+
 					const determineColorVariant = (
 						integrationEnabledForDice: IntegrationEnabledForDice,
 					): "white" | "rainbow" => {
@@ -854,7 +866,8 @@ export const setupPixelsMenu = async (): Promise<void> => {
 						},
 					});
 
-					return dieImage;
+					dieImageButton.appendChild(dieImage);
+					return dieImageButton;
 				};
 
 				const createDieInfoTags = (
@@ -972,7 +985,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 					pixelsDiceOverviewColumn1.appendChild(pixelsDiceOverviewD4Box);
 					pixelsDiceOverviewD4Box.appendChild(
-						createDieImageTag("dice-d4", "d4"),
+						createDieImageButton("dice-d4", "d4"),
 					);
 					addDiceInfoTags(
 						pixelsDiceOverviewD4Box,
@@ -991,7 +1004,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 					pixelsDiceOverviewColumn1.appendChild(pixelsDiceOverviewD00Box);
 					pixelsDiceOverviewD00Box.appendChild(
-						createDieImageTag("dice-fab-d10", "d00"),
+						createDieImageButton("dice-fab-d10", "d00"),
 					);
 					addDiceInfoTags(
 						pixelsDiceOverviewD00Box,
@@ -1025,7 +1038,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 					pixelsDiceOverviewColumn2.appendChild(pixelsDiceOverviewD6Box);
 					pixelsDiceOverviewD6Box.appendChild(
-						createDieImageTag("dice-fab-d6", "d6"),
+						createDieImageButton("dice-fab-d6", "d6"),
 					);
 					addDiceInfoTags(
 						pixelsDiceOverviewD6Box,
@@ -1044,7 +1057,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 					pixelsDiceOverviewColumn2.appendChild(pixelsDiceOverviewD12Box);
 					pixelsDiceOverviewD12Box.appendChild(
-						createDieImageTag("dice-fab-d12", "d12"),
+						createDieImageButton("dice-fab-d12", "d12"),
 					);
 					addDiceInfoTags(
 						pixelsDiceOverviewD12Box,
@@ -1078,7 +1091,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 					pixelsDiceOverviewColumn3.appendChild(pixelsDiceOverviewD8Box);
 					pixelsDiceOverviewD8Box.appendChild(
-						createDieImageTag("dice-fab-d8", "d8"),
+						createDieImageButton("dice-fab-d8", "d8"),
 					);
 					addDiceInfoTags(
 						pixelsDiceOverviewD8Box,
@@ -1097,7 +1110,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 					pixelsDiceOverviewColumn3.appendChild(pixelsDiceOverviewD20Box);
 					pixelsDiceOverviewD20Box.appendChild(
-						createDieImageTag("dice-fab-20", "d20"),
+						createDieImageButton("dice-fab-20", "d20"),
 					);
 					addDiceInfoTags(
 						pixelsDiceOverviewD20Box,
@@ -1131,7 +1144,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 					pixelsDiceOverviewColumn4.appendChild(pixelsDiceOverviewD10Box);
 					pixelsDiceOverviewD10Box.appendChild(
-						createDieImageTag("dice-fab-d10", "d10"),
+						createDieImageButton("dice-fab-d10", "d10"),
 					);
 					addDiceInfoTags(
 						pixelsDiceOverviewD10Box,
@@ -1150,7 +1163,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 					pixelsDiceOverviewColumn4.appendChild(pixelsDiceOverviewDFBox);
 					pixelsDiceOverviewDFBox.appendChild(
-						createDieImageTag("dice-fab-d6", "dF"),
+						createDieImageButton("dice-fab-d6", "dF"),
 					);
 					addDiceInfoTags(
 						pixelsDiceOverviewDFBox,

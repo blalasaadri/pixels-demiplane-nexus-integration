@@ -295,6 +295,50 @@ export const setPixelsIntegrationEnabledForDieType = (
 	return updateIntegrationEnabledForDice(updatedSettings);
 };
 
+export const togglePixelsIntegrationEnabledForDieType = (
+	dieType: PixelDieType | "dF",
+): IntegrationEnabledForDice => {
+	const integrationEnabledForDice = getIntegrationEnabledForDice();
+	let currentlyEnabled = false;
+	switch (dieType) {
+		case "d4": {
+			currentlyEnabled = integrationEnabledForDice.d4;
+			break;
+		}
+		case "d6pipped":
+		case "d6": {
+			currentlyEnabled = integrationEnabledForDice.d6;
+			break;
+		}
+		case "d8": {
+			currentlyEnabled = integrationEnabledForDice.d8;
+			break;
+		}
+		case "d10": {
+			currentlyEnabled = integrationEnabledForDice.d10;
+			break;
+		}
+		case "d00": {
+			currentlyEnabled = integrationEnabledForDice.d00;
+			break;
+		}
+		case "d12": {
+			currentlyEnabled = integrationEnabledForDice.d12;
+			break;
+		}
+		case "d20": {
+			currentlyEnabled = integrationEnabledForDice.d20;
+			break;
+		}
+		case "d6fudge":
+		case "dF": {
+			currentlyEnabled = integrationEnabledForDice.dF;
+			break;
+		}
+	}
+	return setPixelsIntegrationEnabledForDieType(dieType, !currentlyEnabled);
+};
+
 // @ts-ignore
 unsafeWindow.enablePixelsIntegrationForDieType = (
 	dieType: PixelDieType | "dF",
@@ -306,3 +350,9 @@ unsafeWindow.disablePixelsIntegrationForDieType = (
 	dieType: PixelDieType | "dF",
 ): IntegrationEnabledForDice =>
 	setPixelsIntegrationEnabledForDieType(dieType, false);
+
+// @ts-ignore
+unsafeWindow.togglePixelsIntegrationForDieType = (
+	dieType: PixelDieType | "dF",
+): IntegrationEnabledForDice =>
+	togglePixelsIntegrationEnabledForDieType(dieType);

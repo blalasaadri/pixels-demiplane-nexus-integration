@@ -9956,7 +9956,7 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.setPixelsIntegrationEnabledForDieType = exports.updateIntegrationEnabledForDice = exports.getIntegrationEnabledForDice = exports.registerIntegrationForDiceEnabledListener = exports.isDebugEnabled = exports.toggleEnabledForCharacter = exports.setEnabledForCharacter = exports.isEnabledForCharacter = exports.registerEnabledForCharacterListener = exports.characterSheetInfo = void 0;
+exports.togglePixelsIntegrationEnabledForDieType = exports.setPixelsIntegrationEnabledForDieType = exports.updateIntegrationEnabledForDice = exports.getIntegrationEnabledForDice = exports.registerIntegrationForDiceEnabledListener = exports.isDebugEnabled = exports.toggleEnabledForCharacter = exports.setEnabledForCharacter = exports.isEnabledForCharacter = exports.registerEnabledForCharacterListener = exports.characterSheetInfo = void 0;
 const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/(?<gameSystem>[a-zA-Z0-9-]+)\/character-sheet\/(?<characterId>[a-z0-9-]+)/;
 const characterSheetInfo = () => {
     var _a, _b;
@@ -10178,10 +10178,54 @@ const setPixelsIntegrationEnabledForDieType = (dieType, enabled) => {
     return (0, exports.updateIntegrationEnabledForDice)(updatedSettings);
 };
 exports.setPixelsIntegrationEnabledForDieType = setPixelsIntegrationEnabledForDieType;
+const togglePixelsIntegrationEnabledForDieType = (dieType) => {
+    const integrationEnabledForDice = (0, exports.getIntegrationEnabledForDice)();
+    let currentlyEnabled = false;
+    switch (dieType) {
+        case "d4": {
+            currentlyEnabled = integrationEnabledForDice.d4;
+            break;
+        }
+        case "d6pipped":
+        case "d6": {
+            currentlyEnabled = integrationEnabledForDice.d6;
+            break;
+        }
+        case "d8": {
+            currentlyEnabled = integrationEnabledForDice.d8;
+            break;
+        }
+        case "d10": {
+            currentlyEnabled = integrationEnabledForDice.d10;
+            break;
+        }
+        case "d00": {
+            currentlyEnabled = integrationEnabledForDice.d00;
+            break;
+        }
+        case "d12": {
+            currentlyEnabled = integrationEnabledForDice.d12;
+            break;
+        }
+        case "d20": {
+            currentlyEnabled = integrationEnabledForDice.d20;
+            break;
+        }
+        case "d6fudge":
+        case "dF": {
+            currentlyEnabled = integrationEnabledForDice.dF;
+            break;
+        }
+    }
+    return (0, exports.setPixelsIntegrationEnabledForDieType)(dieType, !currentlyEnabled);
+};
+exports.togglePixelsIntegrationEnabledForDieType = togglePixelsIntegrationEnabledForDieType;
 // @ts-ignore
 unsafeWindow.enablePixelsIntegrationForDieType = (dieType) => (0, exports.setPixelsIntegrationEnabledForDieType)(dieType, true);
 // @ts-ignore
 unsafeWindow.disablePixelsIntegrationForDieType = (dieType) => (0, exports.setPixelsIntegrationEnabledForDieType)(dieType, false);
+// @ts-ignore
+unsafeWindow.togglePixelsIntegrationForDieType = (dieType) => (0, exports.togglePixelsIntegrationEnabledForDieType)(dieType);
 
 
 /***/ }),
@@ -12067,10 +12111,16 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
 			padding-bottom: 10px;
 		}
 
-		.css-pixels-dice-overview-dice-box img {
+		.css-pixels-dice-overview-dice-box button {
 			display: block;
 			margin-left: auto;
 			margin-right: auto;
+			background: transparent;
+			border-radius: 10px;
+			padding: 6px;
+			margin-bottom: 6px;
+			border-style: solid;
+			cursor: pointer;
 		}
 
 		.css-pixels-dice-overview-die-info {
@@ -12300,7 +12350,9 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                 const pixelsDiceOverviewBody = unsafeWindow.document.createElement("div");
                 pixelsDiceOverviewBody.classList.add("MuiGrid-root", "MuiGrid-container", "css-pixels-dice-overview-body");
                 pixelsDiceOverviewContainer.appendChild(pixelsDiceOverviewBody);
-                const createDieImageTag = (cssClass, imageDieType) => {
+                const createDieImageButton = (cssClass, imageDieType) => {
+                    const dieImageButton = unsafeWindow.document.createElement("button");
+                    dieImageButton.setAttribute("onclick", `togglePixelsIntegrationForDieType("${imageDieType}")`);
                     const determineColorVariant = (integrationEnabledForDice) => {
                         let isEnabledForDieType = false;
                         switch (imageDieType) {
@@ -12371,7 +12423,8 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                             dieImage.setAttribute("src", `https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/${imageDieType}_${color}.svg`);
                         }),
                     });
-                    return dieImage;
+                    dieImageButton.appendChild(dieImage);
+                    return dieImageButton;
                 };
                 const createDieInfoTags = (connectedDiceOfType) => {
                     const infoTags = [];
@@ -12450,13 +12503,13 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                     const pixelsDiceOverviewD4Box = unsafeWindow.document.createElement("div");
                     pixelsDiceOverviewD4Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d4-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn1.appendChild(pixelsDiceOverviewD4Box);
-                    pixelsDiceOverviewD4Box.appendChild(createDieImageTag("dice-d4", "d4"));
+                    pixelsDiceOverviewD4Box.appendChild(createDieImageButton("dice-d4", "d4"));
                     addDiceInfoTags(pixelsDiceOverviewD4Box, ({ dieType }) => dieType === "d4", ({ d4 }) => d4);
                     // D00
                     const pixelsDiceOverviewD00Box = unsafeWindow.document.createElement("div");
                     pixelsDiceOverviewD00Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d00-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn1.appendChild(pixelsDiceOverviewD00Box);
-                    pixelsDiceOverviewD00Box.appendChild(createDieImageTag("dice-fab-d10", "d00"));
+                    pixelsDiceOverviewD00Box.appendChild(createDieImageButton("dice-fab-d10", "d00"));
                     addDiceInfoTags(pixelsDiceOverviewD00Box, ({ dieType }) => dieType === "d00", ({ d00 }) => d00);
                 })();
                 (() => {
@@ -12467,13 +12520,13 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                     const pixelsDiceOverviewD6Box = unsafeWindow.document.createElement("div");
                     pixelsDiceOverviewD6Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d6-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn2.appendChild(pixelsDiceOverviewD6Box);
-                    pixelsDiceOverviewD6Box.appendChild(createDieImageTag("dice-fab-d6", "d6"));
+                    pixelsDiceOverviewD6Box.appendChild(createDieImageButton("dice-fab-d6", "d6"));
                     addDiceInfoTags(pixelsDiceOverviewD6Box, ({ dieType }) => dieType === "d6" || dieType === "d6pipped", ({ d6 }) => d6);
                     // d12
                     const pixelsDiceOverviewD12Box = unsafeWindow.document.createElement("div");
                     pixelsDiceOverviewD12Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d12-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn2.appendChild(pixelsDiceOverviewD12Box);
-                    pixelsDiceOverviewD12Box.appendChild(createDieImageTag("dice-fab-d12", "d12"));
+                    pixelsDiceOverviewD12Box.appendChild(createDieImageButton("dice-fab-d12", "d12"));
                     addDiceInfoTags(pixelsDiceOverviewD12Box, ({ dieType }) => dieType === "d12", ({ d12 }) => d12);
                 })();
                 (() => {
@@ -12484,13 +12537,13 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                     const pixelsDiceOverviewD8Box = unsafeWindow.document.createElement("div");
                     pixelsDiceOverviewD8Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d8-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn3.appendChild(pixelsDiceOverviewD8Box);
-                    pixelsDiceOverviewD8Box.appendChild(createDieImageTag("dice-fab-d8", "d8"));
+                    pixelsDiceOverviewD8Box.appendChild(createDieImageButton("dice-fab-d8", "d8"));
                     addDiceInfoTags(pixelsDiceOverviewD8Box, ({ dieType }) => dieType === "d8", ({ d8 }) => d8);
                     // d20
                     const pixelsDiceOverviewD20Box = unsafeWindow.document.createElement("div");
                     pixelsDiceOverviewD20Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d20-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn3.appendChild(pixelsDiceOverviewD20Box);
-                    pixelsDiceOverviewD20Box.appendChild(createDieImageTag("dice-fab-20", "d20"));
+                    pixelsDiceOverviewD20Box.appendChild(createDieImageButton("dice-fab-20", "d20"));
                     addDiceInfoTags(pixelsDiceOverviewD20Box, ({ dieType }) => dieType === "d20", ({ d20 }) => d20);
                 })();
                 (() => {
@@ -12501,13 +12554,13 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                     const pixelsDiceOverviewD10Box = unsafeWindow.document.createElement("div");
                     pixelsDiceOverviewD10Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d10-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn4.appendChild(pixelsDiceOverviewD10Box);
-                    pixelsDiceOverviewD10Box.appendChild(createDieImageTag("dice-fab-d10", "d10"));
+                    pixelsDiceOverviewD10Box.appendChild(createDieImageButton("dice-fab-d10", "d10"));
                     addDiceInfoTags(pixelsDiceOverviewD10Box, ({ dieType }) => dieType === "d10", ({ d10 }) => d10);
                     // dF
                     const pixelsDiceOverviewDFBox = unsafeWindow.document.createElement("div");
                     pixelsDiceOverviewDFBox.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-dF-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn4.appendChild(pixelsDiceOverviewDFBox);
-                    pixelsDiceOverviewDFBox.appendChild(createDieImageTag("dice-fab-d6", "dF"));
+                    pixelsDiceOverviewDFBox.appendChild(createDieImageButton("dice-fab-d6", "dF"));
                     addDiceInfoTags(pixelsDiceOverviewDFBox, ({ dieType }) => dieType === "d6fudge", ({ dF }) => dF);
                 })();
             })();
