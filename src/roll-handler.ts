@@ -7,7 +7,7 @@ import {
 	repeatConnect,
 	requestPixel,
 } from "@systemic-games/pixels-web-connect";
-import { isDebugEnabled } from "./integration-utils";
+import { isDebugEnabled, setEnabledForCharacter } from "./integration-utils";
 import { updateIntegrationEnabledForDice } from "./integration-utils";
 import type { DiceSize } from "./types";
 
@@ -494,6 +494,9 @@ export const connectToDie = async () => {
 		duration: 2000,
 		fade: 0.5,
 	});
+
+	// If we're connecting a die, we want to enable the integration (if it isn't already)
+	setEnabledForCharacter(true);
 
 	const { dieType, colorway: pixelColorway, name: pixelName, pixelId } = pixel;
 	pixel.addEventListener("roll", (face) => {

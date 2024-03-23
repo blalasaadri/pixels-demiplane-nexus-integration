@@ -1,4 +1,8 @@
-import { isDebugEnabled } from "./integration-utils";
+import {
+	isDebugEnabled,
+	isEnabledForCharacter,
+	registerEnabledForCharacterListener,
+} from "./integration-utils";
 import {
 	type ConnectedDice,
 	type ConnectedDie,
@@ -7,8 +11,6 @@ import {
 	registerDiceConnectionListener,
 } from "./roll-handler";
 import { getTranslation } from "./translations";
-
-// FIXME Add a way to enable or disable Pixels for a given character in the GUI
 
 export const setupPixelsMenu = async (): Promise<void> => {
 	const pixelsTooltipCss = `
@@ -158,6 +160,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
             border-width: 1px !important;
             border-style: solid !important;
             border-color: rgba(255, 255, 255, 0.4) !important;
+			margin-bottom: 10px;
         }
 
         @media (min-width: 1366px) {
@@ -196,6 +199,56 @@ export const setupPixelsMenu = async (): Promise<void> => {
             inset: 0px;
             border-radius: inherit;
         }
+
+		.css-pixels-integration-enabled-checkbox {
+			min-width: 20px;
+			height: 20px !important;
+			width: 20px !important;
+			outline: 2px solid white;
+			outline-offset: -3.5px;
+			background: white;
+			border: 1px solid rgba(255, 255, 255, 0.4) !important;
+			color: rgba(255, 255, 255, 0.4) !important;
+			display: inline-block;
+			-webkit-box-align: center;
+			align-items: center;
+			-webkit-box-pack: center;
+			box-sizing: border-box;
+			-webkit-tap-highlight-color: transparent;
+			outline: 0px;
+			margin: 0px;
+			cursor: pointer;
+			user-select: none;
+			vertical-align: middle;
+			appearance: none;
+			text-decoration: none;
+			letter-spacing: 0.02857em;
+			padding: 6px 8px;
+			transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+		}
+		
+		.css-pixels-integration-enabled-checkbox.active {
+			background: linear-gradient(60deg, rgba(62, 172, 194, 0.5) 0%, rgba(121, 62, 194, 0.5) 25%, rgba(245, 58, 37, 0.5) 50%, rgba(245, 241, 27, 0.5) 75%, rgba(124, 207, 128, 0.5));
+		}
+
+		.css-pixels-integration-enabled-text {
+			font-family: GoodOTCondBold !important;
+			text-transform: uppercase;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-weight: 400;
+			color: #fff;
+			cursor: pointer;
+			font-size: 14px;
+			font-style: normal;
+			text-align: center;
+			margin-left: 8px;
+			display: inline-block;
+			height: 20px;
+			line-height: 20px;
+			padding-top: 6px;
+		}
 
         /* Dice Overview */
 
@@ -588,6 +641,77 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					"css-pixels-connect-button-ripple",
 				);
 				connectPixelDieButton.appendChild(connectPixelDieButtonRipple);
+
+				// Add a "use pixels for this character" button
+				const usePixelsCheckboxHolder =
+					unsafeWindow.document.createElement("div");
+				usePixelsCheckboxHolder.classList.add(
+					"MuiGrid-root",
+					"MuiGrid-item",
+					"button-component",
+				);
+				pixelsSettingsBodyColumn.appendChild(usePixelsCheckboxHolder);
+
+				const usePixelsCheckboxButton =
+					unsafeWindow.document.createElement("button");
+				usePixelsCheckboxButton.classList.add(
+					"MuiButtonBase-root",
+					"MuiButton-root",
+					"MuiButton-text",
+					"MuiButton-textPrimary",
+					"MuiButton-sizeMedium",
+					"MuiButton-textSizeMedium",
+					"MuiButton-root",
+					"MuiButton-text",
+					"MuiButton-textPrimary",
+					"MuiButton-sizeMedium",
+					"MuiButton-textSizeMedium",
+					"button-component__button",
+					"css-pixels-integration-enabled-checkbox",
+				);
+				if (isEnabledForCharacter()) {
+					usePixelsCheckboxButton.classList.add("active");
+				}
+				registerEnabledForCharacterListener({
+					callback: (enabled) => {
+						if (enabled) {
+							if (!usePixelsCheckboxButton.classList.contains("active")) {
+								usePixelsCheckboxButton.classList.add("active");
+							}
+						} else {
+							usePixelsCheckboxButton.classList.remove("active");
+						}
+					},
+				});
+				usePixelsCheckboxButton.setAttribute("type", "button");
+				usePixelsCheckboxButton.setAttribute(
+					"onclick",
+					"togglePixelsItegrationEnabled()",
+				);
+				usePixelsCheckboxButton.id = "toggle-pixel-integration-enabled";
+				usePixelsCheckboxHolder.appendChild(usePixelsCheckboxButton);
+
+				const usePixelsCheckboxButtonSpan =
+					unsafeWindow.document.createElement("span");
+				usePixelsCheckboxButtonSpan.classList.add(
+					"MuiTouchRipple-root",
+					"css-pixels-integration-enabled-text",
+				);
+				usePixelsCheckboxButton.appendChild(usePixelsCheckboxButtonSpan);
+
+				const usePixelsCheckboxText =
+					unsafeWindow.document.createElement("label");
+				usePixelsCheckboxText.setAttribute(
+					"for",
+					"toggle-pixel-integration-enabled",
+				);
+				usePixelsCheckboxText.classList.add(
+					"css-pixels-integration-enabled-text",
+				);
+				usePixelsCheckboxText.innerHTML = getTranslation(
+					"ui.pixelsMenu.settings.enableForCharacter.text",
+				);
+				usePixelsCheckboxHolder.appendChild(usePixelsCheckboxText);
 			})();
 
 			// Menu part for showing the already connected Pixels dice

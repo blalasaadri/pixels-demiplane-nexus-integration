@@ -20,6 +20,9 @@ interface Translations {
 					text: string;
 					ariaLabel: string;
 				};
+				enableForCharacter: {
+					text: string;
+				};
 			};
 			overview: {
 				title: string;
@@ -46,6 +49,9 @@ const en: Translations & TranslationObject = {
 				connectDieButton: {
 					text: "Connect Pixels die",
 					ariaLabel: "connect pixels die",
+				},
+				enableForCharacter: {
+					text: "Enable for Character",
 				},
 			},
 			overview: {

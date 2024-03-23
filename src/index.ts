@@ -61,11 +61,13 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 			// Check whether we're on a character sheet and if so, what the character's ID is
 			const { characterId, gameSystem } = integration.characterSheetInfo();
 
-			integration.isEnabled(characterId || "").then((isEnabled) => {
+			(() => {
 				// @ts-ignore
 				const useIntegration = this.pixelsRoll;
 				// @ts-ignore
 				const requestURL: string | URL = this.requestURL;
+
+				const isEnabled = integration.isEnabledForCharacter(characterId || "");
 
 				const rollUrl = requestURL?.toString();
 				const rollUrlMatches = rollUrl.match(diceRollUrlRegex);
@@ -165,7 +167,7 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 					// @ts-ignore
 					this.nativeSend(body);
 				}
-			});
+			})();
 		};
 
 		// @ts-ignore

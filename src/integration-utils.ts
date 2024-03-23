@@ -17,9 +17,22 @@ export const characterSheetInfo = (): {
 	};
 };
 
+// Methods for enabling and disabling the integration
+interface IntegrationEnabledListener {
+	callback: (enabled: boolean, characterId: string) => void;
+}
+
+const enabledForCharacterListeners: IntegrationEnabledListener[] = [];
+
+export const registerEnabledForCharacterListener = (
+	listener: IntegrationEnabledListener,
+): void => {
+	enabledForCharacterListeners.push(listener);
+};
+
 const integrationEnabledStorageName = "pixelsIntegrationEnabled";
 
-export const isEnabled = async (characterId?: string): Promise<boolean> => {
+export const isEnabledForCharacter = (characterId?: string): boolean => {
 	let characterSheetId = characterId;
 	if (!characterSheetId) {
 		characterSheetId = characterSheetInfo().characterId || "";
@@ -30,68 +43,56 @@ export const isEnabled = async (characterId?: string): Promise<boolean> => {
 	);
 	if (localStorageEntryString) {
 		const localStorageEntry = JSON.parse(localStorageEntryString);
-		enabledForCharacter = localStorageEntry[characterSheetId] === "true";
+		enabledForCharacter =
+			localStorageEntry[characterSheetId] === true ||
+			localStorageEntry[characterSheetId] === "true";
 	}
 	return enabledForCharacter;
 };
 
 // @ts-ignore
-unsafeWindow.isPixelsIntegrationEnabled = (): boolean => {
-	let integrationEnabledForCharacter = false;
+unsafeWindow.isPixelsIntegrationEnabled = isEnabledForCharacter;
 
-	const enabledString = unsafeWindow.localStorage.getItem(
-		integrationEnabledStorageName,
-	);
-	const { characterId } = characterSheetInfo();
-	if (enabledString && characterId) {
-		const enabledObject = JSON.parse(enabledString);
-		const characterEnabledInfo = enabledObject[characterId];
-		integrationEnabledForCharacter = characterEnabledInfo === "true";
-	}
-
-	return integrationEnabledForCharacter;
-};
-
-export const toggleEnabled = async (characterId?: string): Promise<boolean> => {
+export const setEnabledForCharacter = (
+	enabled: boolean,
+	characterId?: string,
+): boolean => {
 	let characterSheetId = characterId;
 	if (!characterSheetId) {
 		characterSheetId = characterSheetInfo().characterId || "";
 	}
-	let enabledForCharacter = !isEnabled(characterId);
+	const previouslyEnabledForCharacter = isEnabledForCharacter(characterId);
 	const localStorageEntryString = unsafeWindow.localStorage.getItem(
 		integrationEnabledStorageName,
 	);
 	if (localStorageEntryString) {
 		const localStorageEntry = JSON.parse(localStorageEntryString);
-		enabledForCharacter = localStorageEntry[characterSheetId] === "true";
+		localStorageEntry[characterSheetId] = enabled;
+		unsafeWindow.localStorage.setItem(
+			integrationEnabledStorageName,
+			JSON.stringify(localStorageEntry),
+		);
 	}
-	return enabledForCharacter;
+	if (previouslyEnabledForCharacter !== enabled) {
+		for (const listener of enabledForCharacterListeners) {
+			listener.callback(enabled, characterSheetId);
+		}
+	}
+	return enabled;
+};
+
+export const toggleEnabledForCharacter = (characterId?: string): boolean => {
+	let characterSheetId = characterId;
+	if (!characterSheetId) {
+		characterSheetId = characterSheetInfo().characterId || "";
+	}
+	const previouslyEnabledForCharacter = isEnabledForCharacter(characterId);
+	const nowEnabledForCharacter = !previouslyEnabledForCharacter;
+	return setEnabledForCharacter(nowEnabledForCharacter, characterSheetId);
 };
 
 // @ts-ignore
-unsafeWindow.togglePixelsItegrationEnabled = (): boolean => {
-	let integrationPreviouslyEnabledForCharacter = false;
-
-	const enabledString = unsafeWindow.localStorage.getItem(
-		integrationEnabledStorageName,
-	);
-	const { characterId } = characterSheetInfo();
-	const enabledObject: { [id: string]: string } = enabledString
-		? JSON.parse(enabledString)
-		: {};
-	if (characterId) {
-		const characterEnabledInfo = enabledObject[characterId];
-		integrationPreviouslyEnabledForCharacter = characterEnabledInfo === "true";
-
-		enabledObject[characterId] = `${!integrationPreviouslyEnabledForCharacter}`;
-		unsafeWindow.localStorage.setItem(
-			integrationEnabledStorageName,
-			JSON.stringify(enabledObject),
-		);
-	}
-
-	return !integrationPreviouslyEnabledForCharacter;
-};
+unsafeWindow.togglePixelsItegrationEnabled = toggleEnabledForCharacter;
 
 const integrationDebugStorageName = "pixelsIntegrationDebug";
 export const isDebugEnabled = (): boolean => {

@@ -9846,12 +9846,13 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
         const customSend = function (body) {
             // Check whether we're on a character sheet and if so, what the character's ID is
             const { characterId, gameSystem } = integration.characterSheetInfo();
-            integration.isEnabled(characterId || "").then((isEnabled) => {
+            (() => {
                 var _a;
                 // @ts-ignore
                 const useIntegration = this.pixelsRoll;
                 // @ts-ignore
                 const requestURL = this.requestURL;
+                const isEnabled = integration.isEnabledForCharacter(characterId || "");
                 const rollUrl = requestURL === null || requestURL === void 0 ? void 0 : requestURL.toString();
                 const rollUrlMatches = rollUrl.match(diceRollUrlRegex);
                 const rollCommand = (_a = rollUrlMatches === null || rollUrlMatches === void 0 ? void 0 : rollUrlMatches.groups) === null || _a === void 0 ? void 0 : _a.roll;
@@ -9930,7 +9931,7 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
                     // @ts-ignore
                     this.nativeSend(body);
                 }
-            });
+            })();
         };
         // @ts-ignore
         XMLHttpRequest.prototype.send = customSend;
@@ -9950,21 +9951,12 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 /***/ }),
 
 /***/ 530:
-/***/ (function(__unused_webpack_module, exports) {
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.setPixelsIntegrationEnabledForDieType = exports.updateIntegrationEnabledForDice = exports.integrationEnabledForDice = exports.isDebugEnabled = exports.toggleEnabled = exports.isEnabled = exports.characterSheetInfo = void 0;
+exports.setPixelsIntegrationEnabledForDieType = exports.updateIntegrationEnabledForDice = exports.integrationEnabledForDice = exports.isDebugEnabled = exports.toggleEnabledForCharacter = exports.setEnabledForCharacter = exports.isEnabledForCharacter = exports.registerEnabledForCharacterListener = exports.characterSheetInfo = void 0;
 const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/(?<gameSystem>[a-zA-Z0-9-]+)\/character-sheet\/(?<characterId>[a-z0-9-]+)/;
 const characterSheetInfo = () => {
     var _a, _b;
@@ -9978,8 +9970,13 @@ const characterSheetInfo = () => {
     };
 };
 exports.characterSheetInfo = characterSheetInfo;
+const enabledForCharacterListeners = [];
+const registerEnabledForCharacterListener = (listener) => {
+    enabledForCharacterListeners.push(listener);
+};
+exports.registerEnabledForCharacterListener = registerEnabledForCharacterListener;
 const integrationEnabledStorageName = "pixelsIntegrationEnabled";
-const isEnabled = (characterId) => __awaiter(void 0, void 0, void 0, function* () {
+const isEnabledForCharacter = (characterId) => {
     let characterSheetId = characterId;
     if (!characterSheetId) {
         characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
@@ -9988,53 +9985,47 @@ const isEnabled = (characterId) => __awaiter(void 0, void 0, void 0, function* (
     const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
     if (localStorageEntryString) {
         const localStorageEntry = JSON.parse(localStorageEntryString);
-        enabledForCharacter = localStorageEntry[characterSheetId] === "true";
+        enabledForCharacter =
+            localStorageEntry[characterSheetId] === true ||
+                localStorageEntry[characterSheetId] === "true";
     }
     return enabledForCharacter;
-});
-exports.isEnabled = isEnabled;
-// @ts-ignore
-unsafeWindow.isPixelsIntegrationEnabled = () => {
-    let integrationEnabledForCharacter = false;
-    const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
-    const { characterId } = (0, exports.characterSheetInfo)();
-    if (enabledString && characterId) {
-        const enabledObject = JSON.parse(enabledString);
-        const characterEnabledInfo = enabledObject[characterId];
-        integrationEnabledForCharacter = characterEnabledInfo === "true";
-    }
-    return integrationEnabledForCharacter;
 };
-const toggleEnabled = (characterId) => __awaiter(void 0, void 0, void 0, function* () {
+exports.isEnabledForCharacter = isEnabledForCharacter;
+// @ts-ignore
+unsafeWindow.isPixelsIntegrationEnabled = exports.isEnabledForCharacter;
+const setEnabledForCharacter = (enabled, characterId) => {
     let characterSheetId = characterId;
     if (!characterSheetId) {
         characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
     }
-    let enabledForCharacter = !(0, exports.isEnabled)(characterId);
+    const previouslyEnabledForCharacter = (0, exports.isEnabledForCharacter)(characterId);
     const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
     if (localStorageEntryString) {
         const localStorageEntry = JSON.parse(localStorageEntryString);
-        enabledForCharacter = localStorageEntry[characterSheetId] === "true";
+        localStorageEntry[characterSheetId] = enabled;
+        unsafeWindow.localStorage.setItem(integrationEnabledStorageName, JSON.stringify(localStorageEntry));
     }
-    return enabledForCharacter;
-});
-exports.toggleEnabled = toggleEnabled;
-// @ts-ignore
-unsafeWindow.togglePixelsItegrationEnabled = () => {
-    let integrationPreviouslyEnabledForCharacter = false;
-    const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
-    const { characterId } = (0, exports.characterSheetInfo)();
-    const enabledObject = enabledString
-        ? JSON.parse(enabledString)
-        : {};
-    if (characterId) {
-        const characterEnabledInfo = enabledObject[characterId];
-        integrationPreviouslyEnabledForCharacter = characterEnabledInfo === "true";
-        enabledObject[characterId] = `${!integrationPreviouslyEnabledForCharacter}`;
-        unsafeWindow.localStorage.setItem(integrationEnabledStorageName, JSON.stringify(enabledObject));
+    if (previouslyEnabledForCharacter !== enabled) {
+        for (const listener of enabledForCharacterListeners) {
+            listener.callback(enabled, characterSheetId);
+        }
     }
-    return !integrationPreviouslyEnabledForCharacter;
+    return enabled;
 };
+exports.setEnabledForCharacter = setEnabledForCharacter;
+const toggleEnabledForCharacter = (characterId) => {
+    let characterSheetId = characterId;
+    if (!characterSheetId) {
+        characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
+    }
+    const previouslyEnabledForCharacter = (0, exports.isEnabledForCharacter)(characterId);
+    const nowEnabledForCharacter = !previouslyEnabledForCharacter;
+    return (0, exports.setEnabledForCharacter)(nowEnabledForCharacter, characterSheetId);
+};
+exports.toggleEnabledForCharacter = toggleEnabledForCharacter;
+// @ts-ignore
+unsafeWindow.togglePixelsItegrationEnabled = exports.toggleEnabledForCharacter;
 const integrationDebugStorageName = "pixelsIntegrationDebug";
 const isDebugEnabled = () => {
     const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationDebugStorageName);
@@ -10810,6 +10801,8 @@ const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
         duration: 2000,
         fade: 0.5,
     });
+    // If we're connecting a die, we want to enable the integration (if it isn't already)
+    (0, integration_utils_1.setEnabledForCharacter)(true);
     const { dieType, colorway: pixelColorway, name: pixelName, pixelId } = pixel;
     pixel.addEventListener("roll", (face) => {
         if ((0, integration_utils_1.isDebugEnabled)()) {
@@ -11189,6 +11182,9 @@ const en = {
                 connectDieButton: {
                     text: "Connect Pixels die",
                     ariaLabel: "connect pixels die",
+                },
+                enableForCharacter: {
+                    text: "Enable for Character",
                 },
             },
             overview: {
@@ -11683,7 +11679,6 @@ exports.setupPixelsMenu = void 0;
 const integration_utils_1 = __webpack_require__(530);
 const roll_handler_1 = __webpack_require__(952);
 const translations_1 = __webpack_require__(414);
-// FIXME Add a way to enable or disable Pixels for a given character in the GUI
 const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     const pixelsTooltipCss = `
@@ -11833,6 +11828,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
             border-width: 1px !important;
             border-style: solid !important;
             border-color: rgba(255, 255, 255, 0.4) !important;
+			margin-bottom: 10px;
         }
 
         @media (min-width: 1366px) {
@@ -11871,6 +11867,56 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
             inset: 0px;
             border-radius: inherit;
         }
+
+		.css-pixels-integration-enabled-checkbox {
+			min-width: 20px;
+			height: 20px !important;
+			width: 20px !important;
+			outline: 2px solid white;
+			outline-offset: -3.5px;
+			background: white;
+			border: 1px solid rgba(255, 255, 255, 0.4) !important;
+			color: rgba(255, 255, 255, 0.4) !important;
+			display: inline-block;
+			-webkit-box-align: center;
+			align-items: center;
+			-webkit-box-pack: center;
+			box-sizing: border-box;
+			-webkit-tap-highlight-color: transparent;
+			outline: 0px;
+			margin: 0px;
+			cursor: pointer;
+			user-select: none;
+			vertical-align: middle;
+			appearance: none;
+			text-decoration: none;
+			letter-spacing: 0.02857em;
+			padding: 6px 8px;
+			transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+		}
+		
+		.css-pixels-integration-enabled-checkbox.active {
+			background: linear-gradient(60deg, rgba(62, 172, 194, 0.5) 0%, rgba(121, 62, 194, 0.5) 25%, rgba(245, 58, 37, 0.5) 50%, rgba(245, 241, 27, 0.5) 75%, rgba(124, 207, 128, 0.5));
+		}
+
+		.css-pixels-integration-enabled-text {
+			font-family: GoodOTCondBold !important;
+			text-transform: uppercase;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			font-weight: 400;
+			color: #fff;
+			cursor: pointer;
+			font-size: 14px;
+			font-style: normal;
+			text-align: center;
+			margin-left: 8px;
+			display: inline-block;
+			height: 20px;
+			line-height: 20px;
+			padding-top: 6px;
+		}
 
         /* Dice Overview */
 
@@ -12157,6 +12203,39 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                 const connectPixelDieButtonRipple = unsafeWindow.document.createElement("span");
                 connectPixelDieButtonRipple.classList.add("MuiTouchRipple-root", "css-pixels-connect-button-ripple");
                 connectPixelDieButton.appendChild(connectPixelDieButtonRipple);
+                // Add a "use pixels for this character" button
+                const usePixelsCheckboxHolder = unsafeWindow.document.createElement("div");
+                usePixelsCheckboxHolder.classList.add("MuiGrid-root", "MuiGrid-item", "button-component");
+                pixelsSettingsBodyColumn.appendChild(usePixelsCheckboxHolder);
+                const usePixelsCheckboxButton = unsafeWindow.document.createElement("button");
+                usePixelsCheckboxButton.classList.add("MuiButtonBase-root", "MuiButton-root", "MuiButton-text", "MuiButton-textPrimary", "MuiButton-sizeMedium", "MuiButton-textSizeMedium", "MuiButton-root", "MuiButton-text", "MuiButton-textPrimary", "MuiButton-sizeMedium", "MuiButton-textSizeMedium", "button-component__button", "css-pixels-integration-enabled-checkbox");
+                if ((0, integration_utils_1.isEnabledForCharacter)()) {
+                    usePixelsCheckboxButton.classList.add("active");
+                }
+                (0, integration_utils_1.registerEnabledForCharacterListener)({
+                    callback: (enabled) => {
+                        if (enabled) {
+                            if (!usePixelsCheckboxButton.classList.contains("active")) {
+                                usePixelsCheckboxButton.classList.add("active");
+                            }
+                        }
+                        else {
+                            usePixelsCheckboxButton.classList.remove("active");
+                        }
+                    },
+                });
+                usePixelsCheckboxButton.setAttribute("type", "button");
+                usePixelsCheckboxButton.setAttribute("onclick", "togglePixelsItegrationEnabled()");
+                usePixelsCheckboxButton.id = "toggle-pixel-integration-enabled";
+                usePixelsCheckboxHolder.appendChild(usePixelsCheckboxButton);
+                const usePixelsCheckboxButtonSpan = unsafeWindow.document.createElement("span");
+                usePixelsCheckboxButtonSpan.classList.add("MuiTouchRipple-root", "css-pixels-integration-enabled-text");
+                usePixelsCheckboxButton.appendChild(usePixelsCheckboxButtonSpan);
+                const usePixelsCheckboxText = unsafeWindow.document.createElement("label");
+                usePixelsCheckboxText.setAttribute("for", "toggle-pixel-integration-enabled");
+                usePixelsCheckboxText.classList.add("css-pixels-integration-enabled-text");
+                usePixelsCheckboxText.innerHTML = (0, translations_1.getTranslation)("ui.pixelsMenu.settings.enableForCharacter.text");
+                usePixelsCheckboxHolder.appendChild(usePixelsCheckboxText);
             })();
             // Menu part for showing the already connected Pixels dice
             (() => {
