@@ -30,6 +30,10 @@ export const registerEnabledForCharacterListener = (
 	enabledForCharacterListeners.push(listener);
 };
 
+interface EnabledByCharacter {
+	[characterSheetId: string]: boolean;
+}
+
 const integrationEnabledStorageName = "pixelsIntegrationEnabled";
 
 export const isEnabledForCharacter = (characterId?: string): boolean => {
@@ -38,15 +42,12 @@ export const isEnabledForCharacter = (characterId?: string): boolean => {
 		characterSheetId = characterSheetInfo().characterId || "";
 	}
 	let enabledForCharacter = false;
-	const localStorageEntryString = unsafeWindow.localStorage.getItem(
-		integrationEnabledStorageName,
+	const localStorageEntryString =
+		unsafeWindow.localStorage.getItem(integrationEnabledStorageName) || "{}";
+	const localStorageEntry: EnabledByCharacter = JSON.parse(
+		localStorageEntryString,
 	);
-	if (localStorageEntryString) {
-		const localStorageEntry = JSON.parse(localStorageEntryString);
-		enabledForCharacter =
-			localStorageEntry[characterSheetId] === true ||
-			localStorageEntry[characterSheetId] === "true";
-	}
+	enabledForCharacter = localStorageEntry[characterSheetId] === true;
 	return enabledForCharacter;
 };
 
@@ -62,17 +63,16 @@ export const setEnabledForCharacter = (
 		characterSheetId = characterSheetInfo().characterId || "";
 	}
 	const previouslyEnabledForCharacter = isEnabledForCharacter(characterId);
-	const localStorageEntryString = unsafeWindow.localStorage.getItem(
-		integrationEnabledStorageName,
+	const localStorageEntryString =
+		unsafeWindow.localStorage.getItem(integrationEnabledStorageName) || "{}";
+	const localStorageEntry: EnabledByCharacter = JSON.parse(
+		localStorageEntryString,
 	);
-	if (localStorageEntryString) {
-		const localStorageEntry = JSON.parse(localStorageEntryString);
-		localStorageEntry[characterSheetId] = enabled;
-		unsafeWindow.localStorage.setItem(
-			integrationEnabledStorageName,
-			JSON.stringify(localStorageEntry),
-		);
-	}
+	localStorageEntry[characterSheetId] = enabled;
+	unsafeWindow.localStorage.setItem(
+		integrationEnabledStorageName,
+		JSON.stringify(localStorageEntry),
+	);
 	if (previouslyEnabledForCharacter !== enabled) {
 		for (const listener of enabledForCharacterListeners) {
 			listener.callback(enabled, characterSheetId);

@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.1.0
+// @version 0.1.1
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -9982,13 +9982,9 @@ const isEnabledForCharacter = (characterId) => {
         characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
     }
     let enabledForCharacter = false;
-    const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
-    if (localStorageEntryString) {
-        const localStorageEntry = JSON.parse(localStorageEntryString);
-        enabledForCharacter =
-            localStorageEntry[characterSheetId] === true ||
-                localStorageEntry[characterSheetId] === "true";
-    }
+    const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName) || "{}";
+    const localStorageEntry = JSON.parse(localStorageEntryString);
+    enabledForCharacter = localStorageEntry[characterSheetId] === true;
     return enabledForCharacter;
 };
 exports.isEnabledForCharacter = isEnabledForCharacter;
@@ -10000,12 +9996,10 @@ const setEnabledForCharacter = (enabled, characterId) => {
         characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
     }
     const previouslyEnabledForCharacter = (0, exports.isEnabledForCharacter)(characterId);
-    const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName);
-    if (localStorageEntryString) {
-        const localStorageEntry = JSON.parse(localStorageEntryString);
-        localStorageEntry[characterSheetId] = enabled;
-        unsafeWindow.localStorage.setItem(integrationEnabledStorageName, JSON.stringify(localStorageEntry));
-    }
+    const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName) || "{}";
+    const localStorageEntry = JSON.parse(localStorageEntryString);
+    localStorageEntry[characterSheetId] = enabled;
+    unsafeWindow.localStorage.setItem(integrationEnabledStorageName, JSON.stringify(localStorageEntry));
     if (previouslyEnabledForCharacter !== enabled) {
         for (const listener of enabledForCharacterListeners) {
             listener.callback(enabled, characterSheetId);
