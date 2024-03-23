@@ -192,6 +192,7 @@ export const addRollsExpectedNotification = (
 				}
 				diceRollParent.replaceChildren(...newDiceRollIndicators);
 
+				// Show the notification
 				notificationParents[0].insertBefore(
 					rollsExpectedNotification,
 					notificationTemplate,
@@ -399,13 +400,13 @@ export const addRollsExpectedNotification = (
 					}
 				}
 			})();
+
+			// Show the notification
+			if (rollsExpectedNotification) {
+				notificationParents[0].appendChild(rollsExpectedNotification);
+			}
 			break;
 		}
-	}
-
-	// Show the notification
-	if (rollsExpectedNotification) {
-		notificationParents[0].appendChild(rollsExpectedNotification);
 	}
 
 	return rollsExpectedNotification;

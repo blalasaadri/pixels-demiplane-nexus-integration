@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.1.1
+// @version 0.1.2
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -10426,15 +10426,28 @@ const mergeRollResults = (firstRollResult, secondRollResult) => {
         mergedResult.crit = CritResult.NO_CRIT;
     }
     // Set the new parts in the merged result
-    mergedResult.raw_dice.parts = [
-        ...firstRollResult.raw_dice.parts,
-        ...secondRollResult.raw_dice.parts,
-    ];
+    mergedResult.raw_dice.parts = [...firstRollResult.raw_dice.parts];
+    const secondParts = secondRollResult.raw_dice.parts;
+    const onlyZeroConstantInSecondPart = secondParts.length === 1 &&
+        secondParts[0].type === "constant" &&
+        secondParts[0].value === 0;
+    if (!onlyZeroConstantInSecondPart) {
+        if (mergedResult.raw_dice.parts.length > 0 &&
+            secondRollResult.raw_dice.parts.length > 0) {
+            const addResultsPart = {
+                type: "operator",
+                value: "+",
+                annotation: "",
+            };
+            mergedResult.raw_dice.parts.push(addResultsPart);
+        }
+        mergedResult.raw_dice.parts.push(...secondRollResult.raw_dice.parts);
+    }
     if ((0, integration_utils_1.isDebugEnabled)()) {
         console.log({
             firstRollResult,
             secondRollResult,
-            mergeRollResults: exports.mergeRollResults,
+            mergedResult,
         });
     }
     return mergedResult;
@@ -11601,6 +11614,7 @@ const addRollsExpectedNotification = (rollRequest) => {
                     }
                 }
                 diceRollParent.replaceChildren(...newDiceRollIndicators);
+                // Show the notification
                 notificationParents[0].insertBefore(rollsExpectedNotification, notificationTemplate);
             })();
             break;
@@ -11710,12 +11724,12 @@ const addRollsExpectedNotification = (rollRequest) => {
                     }
                 }
             })();
+            // Show the notification
+            if (rollsExpectedNotification) {
+                notificationParents[0].appendChild(rollsExpectedNotification);
+            }
             break;
         }
-    }
-    // Show the notification
-    if (rollsExpectedNotification) {
-        notificationParents[0].appendChild(rollsExpectedNotification);
     }
     return rollsExpectedNotification;
 };

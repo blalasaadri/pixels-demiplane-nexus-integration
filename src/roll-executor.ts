@@ -303,16 +303,35 @@ export const mergeRollResults = (
 	}
 
 	// Set the new parts in the merged result
-	mergedResult.raw_dice.parts = [
-		...firstRollResult.raw_dice.parts,
-		...secondRollResult.raw_dice.parts,
-	];
+	mergedResult.raw_dice.parts = [...firstRollResult.raw_dice.parts];
+
+	const secondParts = secondRollResult.raw_dice.parts;
+	const onlyZeroConstantInSecondPart =
+		secondParts.length === 1 &&
+		secondParts[0].type === "constant" &&
+		secondParts[0].value === 0;
+
+	if (!onlyZeroConstantInSecondPart) {
+		if (
+			mergedResult.raw_dice.parts.length > 0 &&
+			secondRollResult.raw_dice.parts.length > 0
+		) {
+			const addResultsPart: OperatorRollRequestResultPart = {
+				type: "operator",
+				value: "+",
+				annotation: "",
+			};
+			mergedResult.raw_dice.parts.push(addResultsPart);
+		}
+
+		mergedResult.raw_dice.parts.push(...secondRollResult.raw_dice.parts);
+	}
 
 	if (isDebugEnabled()) {
 		console.log({
 			firstRollResult,
 			secondRollResult,
-			mergeRollResults,
+			mergedResult,
 		});
 	}
 
