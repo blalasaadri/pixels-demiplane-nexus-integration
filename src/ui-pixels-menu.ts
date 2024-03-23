@@ -356,7 +356,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 		}
 
 		.css-pixels-dice-overview-dice-box button {
-			display: block;
+			display: flex;
 			margin-left: auto;
 			margin-right: auto;
 			background: transparent;
@@ -365,6 +365,12 @@ export const setupPixelsMenu = async (): Promise<void> => {
 			margin-bottom: 6px;
 			border-style: solid;
 			cursor: pointer;
+			height: 60px;
+		}
+
+		.css-pixels-dice-overview-dice-box button img {
+			margin-top: auto;
+			margin-bottom: auto;
 		}
 
 		.css-pixels-dice-overview-die-info {
@@ -372,7 +378,6 @@ export const setupPixelsMenu = async (): Promise<void> => {
 			flex-shrink: 0;
 			flex-basis: 100%;
 			text-align: center;
-			padding-right: 6px;
 			font-family: GoodOTCondBold !important;
 			font-size: 14px;
 			text-transform: uppercase;

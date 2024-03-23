@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.0.8
+// @version 0.1.0
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -12112,7 +12112,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
 		}
 
 		.css-pixels-dice-overview-dice-box button {
-			display: block;
+			display: flex;
 			margin-left: auto;
 			margin-right: auto;
 			background: transparent;
@@ -12121,6 +12121,12 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
 			margin-bottom: 6px;
 			border-style: solid;
 			cursor: pointer;
+			height: 60px;
+		}
+
+		.css-pixels-dice-overview-dice-box button img {
+			margin-top: auto;
+			margin-bottom: auto;
 		}
 
 		.css-pixels-dice-overview-die-info {
@@ -12128,7 +12134,6 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
 			flex-shrink: 0;
 			flex-basis: 100%;
 			text-align: center;
-			padding-right: 6px;
 			font-family: GoodOTCondBold !important;
 			font-size: 14px;
 			text-transform: uppercase;
