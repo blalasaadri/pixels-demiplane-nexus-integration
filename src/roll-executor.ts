@@ -280,6 +280,7 @@ export const expectRolls = async (
 export const mergeRollResults = (
 	firstRollResult: RollRequestResult,
 	secondRollResult: RollRequestResult,
+	originalRollCommand: string,
 ): RollRequestResult => {
 	const mergedResult: RollRequestResult = {
 		...firstRollResult,
@@ -303,29 +304,210 @@ export const mergeRollResults = (
 	}
 
 	// Set the new parts in the merged result
-	mergedResult.raw_dice.parts = [...firstRollResult.raw_dice.parts];
-
-	const secondParts = secondRollResult.raw_dice.parts;
-	const onlyZeroConstantInSecondPart =
-		secondParts.length === 1 &&
-		secondParts[0].type === "constant" &&
-		secondParts[0].value === 0;
-
-	if (!onlyZeroConstantInSecondPart) {
-		if (
-			mergedResult.raw_dice.parts.length > 0 &&
-			secondRollResult.raw_dice.parts.length > 0
-		) {
-			const addResultsPart: OperatorRollRequestResultPart = {
-				type: "operator",
-				value: "+",
-				annotation: "",
+	mergedResult.raw_dice.parts = (() => {
+		const rollDiceParts = (() => {
+			const rollDiceParts: {
+				d4: DieRollRequestResultPart[];
+				d6: DieRollRequestResultPart[];
+				d8: DieRollRequestResultPart[];
+				d10: DieRollRequestResultPart[];
+				d00: DieRollRequestResultPart[];
+				d12: DieRollRequestResultPart[];
+				d20: DieRollRequestResultPart[];
+				dF: DieRollRequestResultPart[];
+				modifiers: ConstantRollRequestResultPart[];
+				comments: CommentRollRequestResultPart[];
+			} = {
+				d4: [],
+				d6: [],
+				d8: [],
+				d10: [],
+				d00: [],
+				d12: [],
+				d20: [],
+				dF: [],
+				modifiers: [],
+				comments: [],
 			};
-			mergedResult.raw_dice.parts.push(addResultsPart);
-		}
+			for (const rollPart of [
+				...firstRollResult.raw_dice.parts,
+				...secondRollResult.raw_dice.parts,
+			]) {
+				switch (rollPart.type) {
+					case "dice": {
+						switch (rollPart.dice_size) {
+							case 4: {
+								rollDiceParts.d4.push(rollPart);
+								break;
+							}
+							case 6: {
+								rollDiceParts.d6.push(rollPart);
+								break;
+							}
+							case 8: {
+								rollDiceParts.d8.push(rollPart);
+								break;
+							}
+							case 10: {
+								rollDiceParts.d10.push(rollPart);
+								break;
+							}
+							case 100: {
+								rollDiceParts.d00.push(rollPart);
+								break;
+							}
+							case 12: {
+								rollDiceParts.d12.push(rollPart);
+								break;
+							}
+							case 20: {
+								rollDiceParts.d20.push(rollPart);
+								break;
+							}
+							case "F": {
+								rollDiceParts.dF.push(rollPart);
+								break;
+							}
+							default: {
+								console.error({
+									description: "Could not add a roll result",
+									rollPart,
+								});
+							}
+						}
+						break;
+					}
+					case "constant": {
+						rollDiceParts.modifiers.push(rollPart);
+						break;
+					}
+					case "comment": {
+						rollDiceParts.comments.push(rollPart);
+						break;
+					}
+					case "operator": {
+						// Ignore operators, we'll add those manually at a later point
+						break;
+					}
+				}
+			}
 
-		mergedResult.raw_dice.parts.push(...secondRollResult.raw_dice.parts);
-	}
+			return rollDiceParts;
+		})();
+
+		const addToMergedRoll = (
+			dieType: string,
+			count: number,
+			matchingParts: DieRollRequestResultPart[],
+		) => {
+			const numberOfDice = matchingParts
+				.flatMap(({ dice }) => dice.length)
+				.reduce((a, b) => a + b, 0);
+			if (numberOfDice !== count) {
+				console.error({
+					description:
+						"The expected number of rolls for a die size doesn't match the actual number of rolls for that size. Continuing nevertheless.",
+					expectedNumber: count,
+					actualNumber: matchingParts.length,
+					actualRolls: matchingParts,
+					dieType,
+				});
+			}
+			let first = true;
+			for (const rollPart of matchingParts) {
+				if (!first) {
+					const operatorPart: OperatorRollRequestResultPart = {
+						type: "operator",
+						value: "+",
+						annotation: "",
+					};
+					mergedRawDiceParts.push(operatorPart);
+				}
+				mergedRawDiceParts.push(rollPart);
+				first = false;
+			}
+		};
+
+		const mergedRawDiceParts: RollRequestResultPart[] = [];
+		const rollCommandParts = originalRollCommand
+			?.replace(/%2B/g, "+")
+			?.replace(/\++/g, "+")
+			?.split(/(\+|-)/);
+		const rollCommandDiePartRegex = /^(?<count>\d+)d(?<dieType>(\d+)|F)$/;
+		const rollCommandModifierPartRegex = /^(?<count>\d+)$/;
+		let modifiersAdded = false;
+
+		for (const rollCommandPart of rollCommandParts) {
+			console.log(`Testing ${rollCommandPart}...`);
+			if (rollCommandDiePartRegex.test(rollCommandPart)) {
+				const matches = rollCommandPart.match(rollCommandDiePartRegex);
+				const { count, dieType } = matches?.groups as {
+					count: string;
+					dieType: string;
+				};
+				switch (dieType) {
+					case "4": {
+						addToMergedRoll(dieType, Number.parseInt(count), rollDiceParts.d4);
+						break;
+					}
+					case "6": {
+						addToMergedRoll(dieType, Number.parseInt(count), rollDiceParts.d6);
+						break;
+					}
+					case "8": {
+						addToMergedRoll(dieType, Number.parseInt(count), rollDiceParts.d8);
+						break;
+					}
+					case "10": {
+						addToMergedRoll(dieType, Number.parseInt(count), rollDiceParts.d10);
+						break;
+					}
+					case "100": {
+						addToMergedRoll(dieType, Number.parseInt(count), rollDiceParts.d00);
+						break;
+					}
+					case "12": {
+						addToMergedRoll(dieType, Number.parseInt(count), rollDiceParts.d12);
+						break;
+					}
+					case "20": {
+						addToMergedRoll(dieType, Number.parseInt(count), rollDiceParts.d20);
+						break;
+					}
+					case "F": {
+						addToMergedRoll(dieType, Number.parseInt(count), rollDiceParts.dF);
+						break;
+					}
+				}
+			} else if (rollCommandPart === "+" || rollCommandPart === "-") {
+				const operatorPart: OperatorRollRequestResultPart = {
+					type: "operator",
+					value: rollCommandPart,
+					annotation: "",
+				};
+				mergedRawDiceParts.push(operatorPart);
+			} else if (rollCommandModifierPartRegex.test(rollCommandPart)) {
+				if (!modifiersAdded) {
+					const collectedModifier: ConstantRollRequestResultPart = {
+						type: "constant",
+						value: 0,
+						annotation: "",
+					};
+					for (const modifier of rollDiceParts.modifiers) {
+						collectedModifier.value += modifier.value;
+					}
+					mergedRawDiceParts.push(collectedModifier);
+					modifiersAdded = true;
+				}
+			} else {
+				console.error({
+					description: "Unknown part of the roll command found, not using it.",
+					part: rollCommandPart,
+				});
+			}
+		}
+		return mergedRawDiceParts;
+	})();
 
 	if (isDebugEnabled()) {
 		console.log({

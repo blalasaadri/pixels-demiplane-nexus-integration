@@ -137,6 +137,7 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 										const mergedResponseBody = mergeRollResults(
 											localResponseBody,
 											remoteResponseBody,
+											rollCommand,
 										);
 
 										if (integration.isDebugEnabled()) {
