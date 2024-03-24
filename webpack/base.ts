@@ -18,8 +18,7 @@ const config: Configuration = {
 		],
 	},
 	externals: {
-		axios: "axios",
-		"@trim21/gm-fetch": "GM_fetch",
+		"@systemic-games/pixels-web-connect": "pixelsWebConnect",
 	},
 	optimization: {
 		minimize: false,
