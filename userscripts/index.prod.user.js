@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.1.4
+// @version 0.1.5
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -9,7 +9,7 @@
 // @updateURL https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/userscripts/index.prod.user.js
 // @downloadURL https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/userscripts/index.prod.user.js
 // @license https://opensource.org/licenses/MIT
-// @match https://app.demiplane.com/nexus/*/character-sheet/*-*-*-*-*
+// @match https://app.demiplane.com/*
 // @require https://unpkg.com/@systemic-games/pixels-web-connect@1.2.0/dist/umd/index.js
 // @connect utils-api.demiplane.com
 // @run-at document-start
@@ -181,14 +181,25 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
         XMLHttpRequest.prototype.send = customSend;
     })();
 }
-(0, ui_pixels_menu_1.setupPixelsMenu)()
-    .then(() => {
-    if (integration.isDebugEnabled()) {
-        console.log("Pixels menu has been created.");
+const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/[a-zA-Z0-9-]+\/character-sheet\/[a-z0-9-]+/;
+// Listen for navigation events
+unsafeWindow.navigation.addEventListener("navigate", (event) => {
+    // If we have navigated to a character sheet, we may have to add a pixels menu button.
+    if (characterSheetUrlRegex.test(event.destination.url)) {
+        // Make sure that we don't already have a pixels menu button, before adding one.
+        const pixelsMenuButtons = unsafeWindow.document.getElementsByClassName("top-nav-nexus-pixels-menu-btn");
+        if (pixelsMenuButtons.length === 0) {
+            (0, ui_pixels_menu_1.setupPixelsMenu)()
+                .then(() => {
+                if (integration.isDebugEnabled()) {
+                    console.log("Pixels menu has been created.");
+                }
+            })
+                .catch((e) => {
+                console.error("Error while setting up pixels menu.", e);
+            });
+        }
     }
-})
-    .catch((e) => {
-    console.error("Error while setting up pixels menu.", e);
 });
 
 

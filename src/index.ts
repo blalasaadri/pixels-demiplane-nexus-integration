@@ -176,12 +176,26 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 	})();
 }
 
-setupPixelsMenu()
-	.then(() => {
-		if (integration.isDebugEnabled()) {
-			console.log("Pixels menu has been created.");
+const characterSheetUrlRegex =
+	/https:\/\/app.demiplane.com\/nexus\/[a-zA-Z0-9-]+\/character-sheet\/[a-z0-9-]+/;
+// Listen for navigation events
+unsafeWindow.navigation.addEventListener("navigate", (event) => {
+	// If we have navigated to a character sheet, we may have to add a pixels menu button.
+	if (characterSheetUrlRegex.test(event.destination.url)) {
+		// Make sure that we don't already have a pixels menu button, before adding one.
+		const pixelsMenuButtons = unsafeWindow.document.getElementsByClassName(
+			"top-nav-nexus-pixels-menu-btn",
+		);
+		if (pixelsMenuButtons.length === 0) {
+			setupPixelsMenu()
+				.then(() => {
+					if (integration.isDebugEnabled()) {
+						console.log("Pixels menu has been created.");
+					}
+				})
+				.catch((e) => {
+					console.error("Error while setting up pixels menu.", e);
+				});
 		}
-	})
-	.catch((e) => {
-		console.error("Error while setting up pixels menu.", e);
-	});
+	}
+});

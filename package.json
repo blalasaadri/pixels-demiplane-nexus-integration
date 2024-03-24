@@ -1,10 +1,15 @@
 {
   "name": "pixels-demiplane-nexus-integration",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.",
   "author": "blalasaadri",
   "license": "MIT",
-  "keywords": ["Pixels", "electronic dice", "Demiplane", "Nexus"],
+  "keywords": [
+    "Pixels",
+    "electronic dice",
+    "Demiplane",
+    "Nexus"
+  ],
   "main": "userscript/index.user.js",
   "scripts": {
     "build": "webpack --config webpack/prod.ts",
@@ -31,7 +36,7 @@
       "https://unpkg.com/@systemic-games/pixels-web-connect@1.2.0/dist/umd/index.js"
     ],
     "match": [
-      "https://app.demiplane.com/nexus/*/character-sheet/*-*-*-*-*"
+      "https://app.demiplane.com/*"
     ],
     "grant": [
       "unsafeWindow"
@@ -49,6 +54,7 @@
   "devDependencies": {
     "@biomejs/biome": "1.6.1",
     "@systemic-games/pixels-web-connect": "^1.2.0",
+    "@types/dom-navigation": "^1.0.3",
     "@types/node": "^18.15.11",
     "@types/tampermonkey": "^4.0.5",
     "@types/webpack": "^5.28.0",
