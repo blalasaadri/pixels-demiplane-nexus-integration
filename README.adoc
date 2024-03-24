@@ -1,5 +1,6 @@
 = Unofficial Pixels integration for Demiplane Nexus
 :icons: font
+:imagesdir: documentation/images
 :source-highlighter: highlight.js
 
 This project aims to integrate the Pixels electronic dice (https://www.gamewithpixels.com/[]) with https://app.demiplane.com/home[Demiplanes] character sheets for TTRPGs.
@@ -14,12 +15,14 @@ By combining the two projects, we can have digital character sheets for a number
 == Requirements
 This integration has a few requirements to work.
 
+[#supported-browsers]
 === Supported browsers
 The following browsers are supported by the integration:
 
 - https://www.google.com/chrome/[Google Chrome]
 - https://www.chromium.org/getting-involved/download-chromium/[Chromium]
 - https://www.microsoft.com/en-us/edge[Microsoft Edge]
+- https://kiwibrowser.com/[Kiwi Browser] (for Android)
 
 [NOTE]
 ====
@@ -28,6 +31,23 @@ The integration will **not work on Firefox or Safari**, since neither of those s
 This isn't likely to change any time soon.
 The specification draft is handled by the https://www.w3.org/community/web-bluetooth/[W3C Web Bluetooth Community Group] and a number of concerns have been raised about it over the years.
 Specifically, Mozilla has decided not to implement Web Bluetooth in Firefox (see a discussion about the issue https://bugzilla.mozilla.org/show_bug.cgi?id=674737[here], a statement about their position https://mozilla.github.io/standards-positions/#web-bluetooth[here]) and Apple has decided against implementing in Webkit (which powers Safari) for security reasons (see a discussion about it https://bugs.webkit.org/show_bug.cgi?id=101034[here] their stance on https://webkit.org/tracking-prevention/#anti-fingerprinting[Anti-Fingerprinting]).
+====
+
+[#supported-oses]
+=== Supported operating system
+The integration has been tested on the following operating systems:
+
+- macOS
+- Ubuntu Linux
+- Windows
+- Android (with the https://kiwibrowser.com/[Kiwi Browser] on a tablet, in Desktop mode)
+
+[WARNING]
+====
+The integration does _not_ work on iOS at this time.
+This is due to Apple (currently) requiring that all browsers use the WebKit engine, which does not support Web Bluetooth.
+
+This may change in the future, but right now that's the way things are.
 ====
 
 === An account with Demiplane
@@ -53,6 +73,7 @@ The integration is built as a so called userscript.
 
 This means that you need a browser extension such as https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo[Tampermonkey], which will inject the userscript into a suitable website (in this case: a character sheet on Demiplane Nexus).
 
+[#supported-game-systems]
 == Supported game systems on Demiplane
 The integration has built to be usable for any game system offered by Demiplane.
 It has been successfully tested with the following systems:
@@ -61,30 +82,157 @@ It has been successfully tested with the following systems:
 - Daggerheart (including limited critical roll handling)
 - Pathfinder 2E (including limited critical roll handling)
 
-== How to install the integration
+== Hot to use the integration
+
+If you're new to using this integration, here is some (hopefully) useful information to get you started.
+
+[#setup]
+=== Setup
 
 Open the URL https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/userscripts/index.prod.user.js[] in a <<Supported browsers, supported browser>> with a <<tampermonkey, plugin such as Tampermonkey>> installed.
 You will be prompted to install the userscript in Tampermonkey.
 
 IMPORTANT: If you had a character sheet open on Demiplane, you will have to reload that page after installing the userscript.
 
-=== Enabling bluetooth in your browser
-Before using the integration, you have to ensure that the Web Bluetooth API is enabled in your browser.
+[#setup-bluetooth]
+==== Bluetooth in your browser
+Depending on your operating system, you may have to enable some functions in your browser before you can start using the integration.
 
-To do so, open the <<Supported Browsers, supported browser>> you want to use and go to link:chrome://flags/#enable-web-bluetooth-new-permissions-backend[chrome://flags/#enable-web-bluetooth-new-permissions-backend] and ensure that the value is set to `Enabled`.
+===== Enabling Bluetooth on Linux
 
-On Linux, you will have to do the same with link:chrome://flags/#enable-web-bluetooth[chrome://flags/#enable-web-bluetooth].
+On Linux, you will have to open the <<Supported Browsers, supported browser>> you want to use and go to link:chrome://flags/#enable-web-bluetooth[chrome://flags/#enable-web-bluetooth].
+Here make sure, that the value is set to `Enabled`.
 
-//== How to use the integration
-//TODO
-//
-//=== Connecting Pixels dice
-//TODO
-//
-//=== Enabling and disabling the integration for certain dice sizes
-//TODO
+===== Automatic reconnects (all operating systems)
+The integration will soon support reconnecting to dice after they have been disconnected (within reason).
+
+To allow for this, go to link:chrome://flags/#enable-web-bluetooth-new-permissions-backend[chrome://flags/#enable-web-bluetooth-new-permissions-backend] and ensure that the value is set to `Enabled`.
+
+[#usage]
+=== Using the integration on Demiplane Nexus
+
+Once <<setup-bluetooth, bluetooth is set up>> and <<setup, the integration is installed>>, open the character sheet you want to use the integation with on Demiplane Nexus.
+
+In many cases, a menu entry called _Pixels Dice icon:caret-down[]_ should appear at in the top bar.
+
+.Example of the Pixels Dice menu for a Pathfinder 2E character
+image:pixels-button-pathfinder.png[]
+
+.Example of the Pixels Dice menu for an Avatar Legends character
+image:pixels-button-avatar.png[]
+
+If this entry does not appear, you may have to reload the character sheet.
+
+[#pixels-menu]
+Once the button, click on it to open what will henceforth be refered to as the _Pixels Menu_.
+
+.The Pixels Menu before anything has been set up
+image:pixels-menu-new-pathfinder.png[]
+
+=== Connecting Pixels dice
+
+In the <<pixels-menu, Pixels Menu>>, click on the button _Connect Pixels die_ in the _Dice Settings_ area to start connecting your pixels dice.
+
+.The Dice Settings menu
+image:pixels-menu-settings.png[]
+
+A window will open which will scan for and then show all Pixels dice it can find.
+
+[TIP]
+====
+If your die is not showing up in this window, please ensure the following:
+
+. Your Pixels die is either not in the charger or it is in the charger but the lid is open.
+. Your Pixels die is active (e.g. the lights have been on recently). If you are unsure, move the die around a bit.
+. Your Pixels die is charged. If the battery is empty, it won't work. That's what the charger is for. 😛
+. Your Pixels die is not close to a magnet. Magnets are used to put Pixels dice to sleep (there is one in the lid of the charger), and if they're asleep they won't show up here.
+====
+
+Once you have connected (at least) one die, a few things in the <<pixels-menu, Pixels Menu>> will change.
+
+.Example of the Pixels Menu, once a die with the name "My Pixels Die" has been connected
+image:pixels-menu-active-die.png[]
+
+- Under _Dice Settings_, the checkbox for _enable for character_ is automatically enabled. (See <<enable-per-character>> for more about this.)
+- The icons of the type of dice you have connected will switch from a white logo to a rainbow logo. (See <<enable-per-die-type>> for more about this.)
+- Under the icon for the die type you just connected, it will list the name of the connected die. That way you can always see, which dice are currently connected.
+
+=== Enabling and disabling the integration or parts of it
+
+In the following two sections, options for enabling and disabling either the complete integration or parts of it will be discussed.
+
+_Enabled_ in this context means, that the integration will expect rolls (either all rolls or those of a certain die size) to be made with Pixels dice.
+
+_Disabled_ means the opposite, so rolls (either all rolls or those of a certain die size) will be made by the Demiplane virtual dice.
+
+[#enable-per-character]
+==== Enabling and disabling the integration for specific characters
+Since Demiplane Nexus supports a number of different game systems that use a variety of dice, it may not make sense to enable the integration for every character you have.
+
+For this reason, there is the _enable for character_ checkbox in the _Dice Settings_ area of the <<pixels-menu, Pixels Menu>>.
+
+.The Dice Settings menu with "enabled for character" active
+image:pixels-menu-dice-settings-enabled-for-character.png[]
+
+The checkbox will automatically be enabled for the current character once you connect a die while on the character sheet.
+You can however enable or disable it manually at any time.
+
+[#enable-per-die-type]
+==== Enabling and disabling the integration for certain dice sizes
+In addition to enabling and disabling the whole integration, you can also enable or disable certain die types.
+When both the integration and a certain die type are enabled, the integration will expect all rolls of that die type to be made with Pixels dice.
+
+Whether a die type is currently enabled or disabled can be seen with by the icon used.
+[cols="^1,^1", frame=none, grid=none]
+|===
+| Die type is inactive
+| Die type is active
+
+| image:d20_white.svg[role="thumb"]
+| image:d20_rainbow.svg[role="thumb"]
+|===
+
+Whenever you connect a die, that die type will automatically be enabled.
+By clicking on the icon (which is on a button), you can manually enable or disable the die type in question.
+
+.Example of having certain die types enabled
+[example]
+====
+For this example, say you have enabled d20s and connected at least one d20 Pixel.
+
+You then are required to make a roll of `1d20 + 1d4 + 2`.
+
+The pixels integration will ask you to roll the connected d20 and will roll the d4 with the Demiplane virtual dice. Once both has happened, it will show you the combined result of your roll.
+====
+
+=== Requested roll notifications
+
+When the integration is waiting for a Pixels roll (in a <<supported-game-systems, supported game system>>), a notification will show up.
+
+The exact design of the notification will depend on the game system, but it will look something like this:
+
+.Example of a notification when waiting for 1d20 to be rolled in a Pathfinder 2E game
+image:notifications-awaiting-single-roll.png[]
+
+[NOTE]
+====
+If you have not made any rolls with this character in this browser yet (or have cleared the data for this website), no popup will show up.
+This is because to be as consistent as possible with the design of the game, the integration copies and modifies an existing notification.
+If there is no existing notification to copy, that won't work.
+
+The integration will still be waiting for the roll, it just has no way of telling you what it is waiting for.
+
+It is therefore recommended, that if you have such a character, you **roll any selection of dice before enabling the integration**.
+====
+
+Once the roll has been made, the roll request notification will be replaced with the regular Demiplane Nexus roll information notification.
 
 == Testing the integration
+For most users, the above explanation should be everything they need to use the integration.
+
+The following is for those of you, who want to test the integration, possibly without having all necessary Pixels dice at hand.
+
+=== Chrome DevTools
 The integration comes with a number of commands available in the browsers https://developer.chrome.com/docs/devtools/open[DevTools].
 To use them, open the DevTools in the browser tab in which you have your character sheet open.
 
@@ -99,7 +247,7 @@ You have the following related commands available to you in the browser console:
 [horizontal]
 `isPixelsIntegrationEnabled()`:: Will return `true` if the integration is enabled or `false` if it isn't. By default it is `true` after it is installed.
 `togglePixelsItegrationEnabled()`:: Will switch the integration on or off. Will return `true` if the integration has been switched on, and `false` if it has been switched off.
-`togglePixelsItegrationDebug()`:: Will switch the integrations debug mode on or off. Will return `true` if the debugging mode has been switched on, and `false` if it has been switched off.
+`togglePixelsItegrationDebug()`:: Will switch the integrations debug mode on or off. Will return `true` if the debugging mode has been switched on, and `false` if it has been switched off. When debug mode is activated, many actions will cause messages to be printed in the console.
 
 === Rolling virtual dice
 If you don't (yet) have (enough) Pixels dice but want to test the integration nevertheless, there is a way to roll so called virtual dice instead.
@@ -163,10 +311,8 @@ rollVirtualD20(2)
 ----
 
 === Enabling and disabling specific die types
-Not every user will have each type of Pixels die available. (E.g. many people only get d20s.)
-For that purpose, you can enable and disable the integration for specific dice types.
-
-You have the following related commands available to you in the browser console:
+As stated in <<enable-per-die-type>>, not every user will have each type of Pixels die available. (E.g. many people only get d20s.)
+For that purpose, you can enable and disable the integration for specific dice types both in the <<pixels-menu,Pixels Menu>> and via the following commands:
 
 [horizontal]
 `enablePixelsIntegrationForDieType(type)`:: Enable a specific die type for the integration.
