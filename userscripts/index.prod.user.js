@@ -20,6 +20,40 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 816:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.registerConsoleVariables = exports.registerConsoleCommands = void 0;
+// biome-ignore lint/suspicious/noExplicitAny: To be able to register any type of function, we have to ignore the types in the function.
+const pixelsIntegrationCommands = {};
+if (!unsafeWindow) {
+    // @ts-ignore
+    unsafeWindow = window;
+}
+// @ts-ignore
+unsafeWindow.pixelsIntegration = pixelsIntegrationCommands;
+const registerConsoleCommands = (
+// biome-ignore lint/suspicious/noExplicitAny: To be able to register any type of function, we have to ignore the types in the function.
+command) => {
+    for (const [commandName, commandFunction] of Object.entries(command)) {
+        pixelsIntegrationCommands[commandName] = commandFunction;
+    }
+};
+exports.registerConsoleCommands = registerConsoleCommands;
+const registerConsoleVariables = (
+// biome-ignore lint/complexity/noBannedTypes: To be able to register any type of variable, we have to allow for any object.
+variables) => {
+    for (const variable of Object.keys(variables)) {
+        pixelsIntegrationCommands[variable] = variable;
+    }
+};
+exports.registerConsoleVariables = registerConsoleVariables;
+
+
+/***/ }),
+
 /***/ 156:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -206,12 +240,18 @@ window.navigation.addEventListener("navigate", (event) => {
 /***/ }),
 
 /***/ 530:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
+var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.togglePixelsIntegrationEnabledForDieType = exports.setPixelsIntegrationEnabledForDieType = exports.updateIntegrationEnabledForDice = exports.getIntegrationEnabledForDice = exports.registerIntegrationForDiceEnabledListener = exports.isDebugEnabled = exports.toggleEnabledForCharacter = exports.setEnabledForCharacter = exports.isEnabledForCharacter = exports.registerEnabledForCharacterListener = exports.characterSheetInfo = void 0;
+exports.toggleEnabledForDieType = exports.setEnabledForDieType = exports.updateEnabledForDice = exports.isEnabledForDieType = exports.getEnabledForDiceOverview = exports.registerIntegrationEnabledForDiceListener = exports.isDebugEnabled = exports.toggleEnabledForCharacter = exports.setEnabledForCharacter = exports.isEnabledForCharacter = exports.registerEnabledForCharacterListener = exports.characterSheetInfo = void 0;
+const console_commands_1 = __webpack_require__(816);
 const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/(?<gameSystem>[a-zA-Z0-9-]+)\/character-sheet\/(?<characterId>[a-z0-9-]+)/;
+/**
+ * Retrieve information about the current character and the game system a character has been built for.
+ * @returns an object containing the fields <code>characterId</code> and <code>gameSystem</code>, both of which are optional.
+ */
 const characterSheetInfo = () => {
     var _a, _b;
     const characterSheetUrl = location.href;
@@ -224,256 +264,393 @@ const characterSheetInfo = () => {
     };
 };
 exports.characterSheetInfo = characterSheetInfo;
-const enabledForCharacterListeners = [];
-const registerEnabledForCharacterListener = (listener) => {
-    enabledForCharacterListeners.push(listener);
-};
-exports.registerEnabledForCharacterListener = registerEnabledForCharacterListener;
-const integrationEnabledStorageName = "pixelsIntegrationEnabled";
-const isEnabledForCharacter = (characterId) => {
-    let characterSheetId = characterId;
-    if (!characterSheetId) {
-        characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
-    }
-    let enabledForCharacter = false;
-    const localStorageEntryString = localStorage.getItem(integrationEnabledStorageName) || "{}";
-    const localStorageEntry = JSON.parse(localStorageEntryString);
-    enabledForCharacter = localStorageEntry[characterSheetId] === true;
-    return enabledForCharacter;
-};
-exports.isEnabledForCharacter = isEnabledForCharacter;
-// @ts-ignore
-unsafeWindow.isPixelsIntegrationEnabled = exports.isEnabledForCharacter;
-const setEnabledForCharacter = (enabled, characterId) => {
-    let characterSheetId = characterId;
-    if (!characterSheetId) {
-        characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
-    }
-    const previouslyEnabledForCharacter = (0, exports.isEnabledForCharacter)(characterId);
-    const localStorageEntryString = localStorage.getItem(integrationEnabledStorageName) || "{}";
-    const localStorageEntry = JSON.parse(localStorageEntryString);
-    localStorageEntry[characterSheetId] = enabled;
-    localStorage.setItem(integrationEnabledStorageName, JSON.stringify(localStorageEntry));
-    if (previouslyEnabledForCharacter !== enabled) {
-        for (const listener of enabledForCharacterListeners) {
-            listener.callback(enabled, characterSheetId);
+_a = (() => {
+    // Some parts of the integration are interested in whether the integration is enabled for a specific character.
+    // The following lines allow them to know when it changes and react to the new situation.
+    const enabledForCharacterListeners = [];
+    /**
+     * Register a listener that is interested in whether the integration is enabled for a specific character.
+     *
+     * @param listener which will be called when the integration is enabled or disabled for a character.
+     */
+    const registerEnabledForCharacterListener = (listener) => {
+        enabledForCharacterListeners.push(listener);
+    };
+    /**
+     * The name of the local storage variable that stores the characters, for which the integration is enabled.
+     */
+    const integrationEnabledStorageName = "pixelsIntegrationEnabled";
+    /**
+     * Is the integration enabled for a specific character?
+     *
+     * @param characterId Optional value. If it is left empty, the current character will be used.
+     * @returns {boolean} whether the integration is enabled for the given character (or current character, if <code>characterId</code> is not given).
+     */
+    const isEnabledForCharacter = (characterId) => {
+        let characterSheetId = characterId;
+        if (!characterSheetId) {
+            characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
         }
-    }
-    return enabled;
-};
-exports.setEnabledForCharacter = setEnabledForCharacter;
-const toggleEnabledForCharacter = (characterId) => {
-    let characterSheetId = characterId;
-    if (!characterSheetId) {
-        characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
-    }
-    const previouslyEnabledForCharacter = (0, exports.isEnabledForCharacter)(characterId);
-    const nowEnabledForCharacter = !previouslyEnabledForCharacter;
-    return (0, exports.setEnabledForCharacter)(nowEnabledForCharacter, characterSheetId);
-};
-exports.toggleEnabledForCharacter = toggleEnabledForCharacter;
-// @ts-ignore
-unsafeWindow.togglePixelsItegrationEnabled = exports.toggleEnabledForCharacter;
-const integrationDebugStorageName = "pixelsIntegrationDebug";
-const isDebugEnabled = () => {
-    const localStorageEntryString = localStorage.getItem(integrationDebugStorageName);
-    return localStorageEntryString === "true";
-};
-exports.isDebugEnabled = isDebugEnabled;
-// @ts-ignore
-unsafeWindow.togglePixelsItegrationDebug = () => {
-    const enabledString = localStorage.getItem(integrationDebugStorageName);
-    const integrationDebugPreviouslyEnabled = enabledString === "true";
-    localStorage.setItem(integrationDebugStorageName, `${!integrationDebugPreviouslyEnabled}`);
-    return !integrationDebugPreviouslyEnabled;
-};
-const integrationForDiceEnabledListeners = [];
-const registerIntegrationForDiceEnabledListener = (listerner) => {
-    integrationForDiceEnabledListeners.push(listerner);
-};
-exports.registerIntegrationForDiceEnabledListener = registerIntegrationForDiceEnabledListener;
-const integrationEnabledForDiceStorageName = "pixelsIntegrationEnabledForDice";
-const getIntegrationEnabledForDice = () => {
-    const enabledString = localStorage.getItem(integrationEnabledForDiceStorageName);
-    let enabledObject;
-    if (enabledString) {
-        enabledObject = JSON.parse(enabledString);
-    }
-    else {
-        // The settings do not yet exist, so create a default and save it
-        enabledObject = {
-            d4: false,
-            d6: false,
-            d8: false,
-            d10: false,
-            d00: false,
-            d12: false,
-            d20: false,
-            dF: false,
-        };
-        localStorage.setItem(integrationEnabledForDiceStorageName, JSON.stringify(enabledObject));
-    }
-    return enabledObject;
-};
-exports.getIntegrationEnabledForDice = getIntegrationEnabledForDice;
-const updateIntegrationEnabledForDice = (updatedSettings) => {
-    const previouslyEnabledString = localStorage.getItem(integrationEnabledForDiceStorageName);
-    let previouslyEnabledObject;
-    if (previouslyEnabledString) {
-        previouslyEnabledObject = JSON.parse(previouslyEnabledString);
-    }
-    else {
-        // The settings do not yet exist, so create a default
-        previouslyEnabledObject = {
-            d4: false,
-            d6: false,
-            d8: false,
-            d10: false,
-            d00: false,
-            d12: false,
-            d20: false,
-            dF: false,
-        };
-    }
-    const newlyEnabledObject = Object.assign(Object.assign({}, previouslyEnabledObject), updatedSettings);
-    localStorage.setItem(integrationEnabledForDiceStorageName, JSON.stringify(newlyEnabledObject));
-    for (const listener of integrationForDiceEnabledListeners) {
-        const updatedForDieSizes = [];
-        for (const key of Object.keys(updatedSettings)) {
-            switch (key) {
-                case "d4": {
-                    updatedForDieSizes.push("d4");
-                    break;
-                }
-                case "d6": {
-                    updatedForDieSizes.push("d6");
-                    break;
-                }
-                case "d8": {
-                    updatedForDieSizes.push("d8");
-                    break;
-                }
-                case "d10": {
-                    updatedForDieSizes.push("d10");
-                    break;
-                }
-                case "d00": {
-                    updatedForDieSizes.push("d00");
-                    break;
-                }
-                case "d12": {
-                    updatedForDieSizes.push("d12");
-                    break;
-                }
-                case "d20": {
-                    updatedForDieSizes.push("d20");
-                    break;
-                }
-                case "dF": {
-                    updatedForDieSizes.push("d6fudge");
-                    break;
-                }
+        let enabledForCharacter = false;
+        const localStorageEntryString = localStorage.getItem(integrationEnabledStorageName) || "{}";
+        const localStorageEntry = JSON.parse(localStorageEntryString);
+        enabledForCharacter = localStorageEntry[characterSheetId] === true;
+        return enabledForCharacter;
+    };
+    /**
+     * Enables or disables the integration for a specific character.
+     *
+     * @param enabled {boolean} whether the integration should be enabled or disabled.
+     * @param characterId optional value. If it is left empty, the current character will be used.
+     * @returns
+     */
+    const setEnabledForCharacter = (enabled, characterId) => {
+        let characterSheetId = characterId;
+        if (!characterSheetId) {
+            characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
+        }
+        const previouslyEnabledForCharacter = isEnabledForCharacter(characterId);
+        const localStorageEntryString = localStorage.getItem(integrationEnabledStorageName) || "{}";
+        const localStorageEntry = JSON.parse(localStorageEntryString);
+        localStorageEntry[characterSheetId] = enabled;
+        localStorage.setItem(integrationEnabledStorageName, JSON.stringify(localStorageEntry));
+        if (previouslyEnabledForCharacter !== enabled) {
+            for (const listener of enabledForCharacterListeners) {
+                listener.callback(enabled, characterSheetId);
             }
         }
-        if (!listener.predicate || listener.predicate(updatedForDieSizes)) {
-            listener.callback(newlyEnabledObject);
+        return enabled;
+    };
+    /**
+     * Toggles whether the integration is enabled for a specific character.
+     *
+     * @param characterId optional value. If it is left empty, the current character will be used.
+     * @returns whether the character is enabled or not after this method completes.
+     */
+    const toggleEnabledForCharacter = (characterId) => {
+        let characterSheetId = characterId;
+        if (!characterSheetId) {
+            characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
         }
-    }
-    return newlyEnabledObject;
-};
-exports.updateIntegrationEnabledForDice = updateIntegrationEnabledForDice;
-const setPixelsIntegrationEnabledForDieType = (dieType, enabled) => {
-    const updatedSettings = {};
-    switch (dieType) {
-        case "d4": {
-            updatedSettings.d4 = enabled;
-            break;
+        const previouslyEnabledForCharacter = isEnabledForCharacter(characterId);
+        const nowEnabledForCharacter = !previouslyEnabledForCharacter;
+        return setEnabledForCharacter(nowEnabledForCharacter, characterSheetId);
+    };
+    // Now let's register the console commands for enabling and disabling the integration for a character.
+    (0, console_commands_1.registerConsoleCommands)({
+        isEnabledForCharacter,
+        toggleEnabledForCharacter,
+        enableForCharacter: (characterSheetId) => {
+            setEnabledForCharacter(true, characterSheetId);
+        },
+        disableForCharacter: (characterSheetId) => {
+            setEnabledForCharacter(false, characterSheetId);
+        },
+    });
+    // And these functions will be exported, so they are available throughout the integration code.
+    return {
+        registerEnabledForCharacterListener,
+        isEnabledForCharacter,
+        setEnabledForCharacter,
+        toggleEnabledForCharacter,
+    };
+})(), exports.registerEnabledForCharacterListener = _a.registerEnabledForCharacterListener, exports.isEnabledForCharacter = _a.isEnabledForCharacter, exports.setEnabledForCharacter = _a.setEnabledForCharacter, exports.toggleEnabledForCharacter = _a.toggleEnabledForCharacter;
+// Debug mode
+exports.isDebugEnabled = (() => {
+    /**
+     * The name of the local storage variable that stores whether debug mode is enabled or not.
+     */
+    const integrationDebugStorageName = "pixelsIntegrationDebug";
+    /**
+     * @returns {boolean} Is debug mode enabled?
+     */
+    const isDebugEnabled = () => {
+        const localStorageEntryString = localStorage.getItem(integrationDebugStorageName);
+        return localStorageEntryString === "true";
+    };
+    /**
+     * Enables debug mode or keeps it enabled, if it already was.
+     *
+     * @returns {boolean} <code>true</code>
+     */
+    const enableDebugMode = () => {
+        localStorage.setItem(integrationDebugStorageName, "true");
+        return true;
+    };
+    /**
+     * Disables debug mode or keeps it disabled, if it already was.
+     *
+     * @returns {boolean} <code>false</code>
+     */
+    const disableDebugMode = () => {
+        localStorage.setItem(integrationDebugStorageName, "false");
+        return true;
+    };
+    /**
+     * Toggles debug mode between enabled and disabled.
+     *
+     * @returns {boolean} Whether debug mode is enabled or disabled after this method completes.
+     */
+    const toggleDebugMode = () => {
+        const integrationDebugPreviouslyEnabled = isDebugEnabled();
+        localStorage.setItem(integrationDebugStorageName, `${!integrationDebugPreviouslyEnabled}`);
+        return !integrationDebugPreviouslyEnabled;
+    };
+    // Now let's register the console commands for enabling and disabling debug mode.
+    (0, console_commands_1.registerConsoleCommands)({
+        isDebugModeEnabled: isDebugEnabled,
+        enableDebugMode,
+        disableDebugMode,
+        toggleDebugMode,
+    });
+    // This is the only function we have to export, since we don't set debug mode programmatically.
+    return {
+        isDebugEnabled,
+    };
+})().isDebugEnabled;
+_b = (() => {
+    const enabledForDiceListeners = [];
+    /**
+     * Allows registering a listener that will be called when the integration is enabled for dice that match the given predicate.
+     *
+     * @param listerner to be registered.
+     */
+    const registerIntegrationEnabledForDiceListener = (listerner) => {
+        enabledForDiceListeners.push(listerner);
+    };
+    /**
+     * The name of the local storage variable that stores which dice the integration is enabled for.
+     */
+    const integrationEnabledForDiceStorageName = "pixelsIntegrationEnabledForDice";
+    /**
+     * Retrieve an overview over all dice types and whether they are enabled or not.
+     */
+    const getEnabledForDiceOverview = () => {
+        const enabledString = localStorage.getItem(integrationEnabledForDiceStorageName);
+        let enabledObject;
+        if (enabledString) {
+            enabledObject = JSON.parse(enabledString);
         }
-        case "d6pipped":
-        case "d6": {
-            updatedSettings.d6 = enabled;
-            break;
+        else {
+            // The settings do not yet exist, so create a default and save it
+            enabledObject = {
+                d4: false,
+                d6: false,
+                d8: false,
+                d10: false,
+                d00: false,
+                d12: false,
+                d20: false,
+                dF: false,
+            };
+            localStorage.setItem(integrationEnabledForDiceStorageName, JSON.stringify(enabledObject));
         }
-        case "d8": {
-            updatedSettings.d8 = enabled;
-            break;
+        return enabledObject;
+    };
+    /**
+     * Check whether the integration is enabled for a specific type of die.
+     *
+     * @param dieType for which the enablement should be checked.
+     * @returns <code>true</code> if the integration is enabled for this type of die, <code>false</code> otherwise.
+     */
+    const isEnabledForDieType = (dieType) => {
+        if (dieType === "unknown") {
+            return false;
         }
-        case "d10": {
-            updatedSettings.d10 = enabled;
-            break;
+        let type = dieType;
+        if (type === "d6fudge") {
+            type = "dF";
         }
-        case "d00": {
-            updatedSettings.d00 = enabled;
-            break;
+        if (type === "d6pipped") {
+            type = "d6";
         }
-        case "d12": {
-            updatedSettings.d12 = enabled;
-            break;
+        return getEnabledForDiceOverview()[type];
+    };
+    /**
+     * Updates which die types the integration is enabled for.
+     *
+     * @param updatedSettings a (potentially partial) object listing which dice the integration is enabled for. Any die type not mentioned will remain unchanged.
+     * @returns an object containing all die types and whether they are enabled or not.
+     */
+    const updateEnabledForDice = (updatedSettings) => {
+        const previouslyEnabledString = localStorage.getItem(integrationEnabledForDiceStorageName);
+        let previouslyEnabledObject;
+        if (previouslyEnabledString) {
+            previouslyEnabledObject = JSON.parse(previouslyEnabledString);
         }
-        case "d20": {
-            updatedSettings.d20 = enabled;
-            break;
+        else {
+            // The settings do not yet exist, so create a default
+            previouslyEnabledObject = {
+                d4: false,
+                d6: false,
+                d8: false,
+                d10: false,
+                d00: false,
+                d12: false,
+                d20: false,
+                dF: false,
+            };
         }
-        case "d6fudge":
-        case "dF": {
-            updatedSettings.dF = enabled;
-            break;
+        const newlyEnabledObject = Object.assign(Object.assign({}, previouslyEnabledObject), updatedSettings);
+        localStorage.setItem(integrationEnabledForDiceStorageName, JSON.stringify(newlyEnabledObject));
+        for (const listener of enabledForDiceListeners) {
+            const updatedForDieSizes = [];
+            for (const key of Object.keys(updatedSettings)) {
+                switch (key) {
+                    case "d4": {
+                        updatedForDieSizes.push("d4");
+                        break;
+                    }
+                    case "d6": {
+                        updatedForDieSizes.push("d6");
+                        break;
+                    }
+                    case "d8": {
+                        updatedForDieSizes.push("d8");
+                        break;
+                    }
+                    case "d10": {
+                        updatedForDieSizes.push("d10");
+                        break;
+                    }
+                    case "d00": {
+                        updatedForDieSizes.push("d00");
+                        break;
+                    }
+                    case "d12": {
+                        updatedForDieSizes.push("d12");
+                        break;
+                    }
+                    case "d20": {
+                        updatedForDieSizes.push("d20");
+                        break;
+                    }
+                    case "dF": {
+                        updatedForDieSizes.push("d6fudge");
+                        break;
+                    }
+                }
+            }
+            if (!listener.predicate || listener.predicate(updatedForDieSizes)) {
+                listener.callback(newlyEnabledObject);
+            }
         }
-        default: {
-            throw new Error(`Unknown dice type ${dieType}`);
+        return newlyEnabledObject;
+    };
+    /**
+     * Sets whether the integration is enabled for a specific type of die.
+     *
+     * @param dieType for which the setting should be changed.
+     * @param enabled whether the integration is enabled for this type of die.
+     * @returns an object containing all die types and whether they are enabled or not.
+     */
+    const setEnabledForDieType = (dieType, enabled) => {
+        const updatedSettings = {};
+        switch (dieType) {
+            case "d4": {
+                updatedSettings.d4 = enabled;
+                break;
+            }
+            case "d6pipped":
+            case "d6": {
+                updatedSettings.d6 = enabled;
+                break;
+            }
+            case "d8": {
+                updatedSettings.d8 = enabled;
+                break;
+            }
+            case "d10": {
+                updatedSettings.d10 = enabled;
+                break;
+            }
+            case "d00": {
+                updatedSettings.d00 = enabled;
+                break;
+            }
+            case "d12": {
+                updatedSettings.d12 = enabled;
+                break;
+            }
+            case "d20": {
+                updatedSettings.d20 = enabled;
+                break;
+            }
+            case "d6fudge":
+            case "dF": {
+                updatedSettings.dF = enabled;
+                break;
+            }
+            default: {
+                throw new Error(`Unknown dice type ${dieType}`);
+            }
         }
-    }
-    return (0, exports.updateIntegrationEnabledForDice)(updatedSettings);
-};
-exports.setPixelsIntegrationEnabledForDieType = setPixelsIntegrationEnabledForDieType;
-const togglePixelsIntegrationEnabledForDieType = (dieType) => {
-    const integrationEnabledForDice = (0, exports.getIntegrationEnabledForDice)();
-    let currentlyEnabled = false;
-    switch (dieType) {
-        case "d4": {
-            currentlyEnabled = integrationEnabledForDice.d4;
-            break;
+        return updateEnabledForDice(updatedSettings);
+    };
+    /**
+     * Toggle whether the integration is enabled for a specific type of die or not.
+     *
+     * @param dieType for which the setting should be changed.
+     * @returns an object containing all die types and whether they are enabled or not.
+     */
+    const toggleEnabledForDieType = (dieType) => {
+        const integrationEnabledForDice = getEnabledForDiceOverview();
+        let currentlyEnabled = false;
+        switch (dieType) {
+            case "d4": {
+                currentlyEnabled = integrationEnabledForDice.d4;
+                break;
+            }
+            case "d6pipped":
+            case "d6": {
+                currentlyEnabled = integrationEnabledForDice.d6;
+                break;
+            }
+            case "d8": {
+                currentlyEnabled = integrationEnabledForDice.d8;
+                break;
+            }
+            case "d10": {
+                currentlyEnabled = integrationEnabledForDice.d10;
+                break;
+            }
+            case "d00": {
+                currentlyEnabled = integrationEnabledForDice.d00;
+                break;
+            }
+            case "d12": {
+                currentlyEnabled = integrationEnabledForDice.d12;
+                break;
+            }
+            case "d20": {
+                currentlyEnabled = integrationEnabledForDice.d20;
+                break;
+            }
+            case "d6fudge":
+            case "dF": {
+                currentlyEnabled = integrationEnabledForDice.dF;
+                break;
+            }
         }
-        case "d6pipped":
-        case "d6": {
-            currentlyEnabled = integrationEnabledForDice.d6;
-            break;
-        }
-        case "d8": {
-            currentlyEnabled = integrationEnabledForDice.d8;
-            break;
-        }
-        case "d10": {
-            currentlyEnabled = integrationEnabledForDice.d10;
-            break;
-        }
-        case "d00": {
-            currentlyEnabled = integrationEnabledForDice.d00;
-            break;
-        }
-        case "d12": {
-            currentlyEnabled = integrationEnabledForDice.d12;
-            break;
-        }
-        case "d20": {
-            currentlyEnabled = integrationEnabledForDice.d20;
-            break;
-        }
-        case "d6fudge":
-        case "dF": {
-            currentlyEnabled = integrationEnabledForDice.dF;
-            break;
-        }
-    }
-    return (0, exports.setPixelsIntegrationEnabledForDieType)(dieType, !currentlyEnabled);
-};
-exports.togglePixelsIntegrationEnabledForDieType = togglePixelsIntegrationEnabledForDieType;
-// @ts-ignore
-unsafeWindow.enablePixelsIntegrationForDieType = (dieType) => (0, exports.setPixelsIntegrationEnabledForDieType)(dieType, true);
-// @ts-ignore
-unsafeWindow.disablePixelsIntegrationForDieType = (dieType) => (0, exports.setPixelsIntegrationEnabledForDieType)(dieType, false);
-// @ts-ignore
-unsafeWindow.togglePixelsIntegrationForDieType = (dieType) => (0, exports.togglePixelsIntegrationEnabledForDieType)(dieType);
+        return setEnabledForDieType(dieType, !currentlyEnabled);
+    };
+    // Now let's register the console commands for enabling and disabling the integration for specific dice.
+    (0, console_commands_1.registerConsoleCommands)({
+        isEnabledForDieType,
+        enableForDieType: (dieType) => setEnabledForDieType(dieType, true),
+        disableForDieType: (dieType) => setEnabledForDieType(dieType, false),
+        toggleForDieType: toggleEnabledForDieType,
+    });
+    // And these functions will be exported, so they are available throughout the integration code.
+    return {
+        registerIntegrationEnabledForDiceListener,
+        getEnabledForDiceOverview,
+        isEnabledForDieType,
+        updateEnabledForDice,
+        setEnabledForDieType,
+        toggleEnabledForDieType,
+    };
+})(), exports.registerIntegrationEnabledForDiceListener = _b.registerIntegrationEnabledForDiceListener, exports.getEnabledForDiceOverview = _b.getEnabledForDiceOverview, exports.isEnabledForDieType = _b.isEnabledForDieType, exports.updateEnabledForDice = _b.updateEnabledForDice, exports.setEnabledForDieType = _b.setEnabledForDieType, exports.toggleEnabledForDieType = _b.toggleEnabledForDieType;
 
 
 /***/ }),
@@ -791,7 +968,6 @@ const mergeRollResults = (firstRollResult, secondRollResult, originalRollCommand
         const rollCommandModifierPartRegex = /^(?<count>\d+)$/;
         let modifiersAdded = false;
         for (const rollCommandPart of rollCommandParts) {
-            console.log(`Testing ${rollCommandPart}...`);
             if (rollCommandDiePartRegex.test(rollCommandPart)) {
                 const matches = rollCommandPart.match(rollCommandDiePartRegex);
                 const { count, dieType } = matches === null || matches === void 0 ? void 0 : matches.groups;
@@ -975,6 +1151,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.connectToDie = exports.getCurrentlyConnectedDice = exports.registerDiceConnectionListener = exports.registerRollListener = void 0;
 const pixels_web_connect_1 = __webpack_require__(198);
+const console_commands_1 = __webpack_require__(816);
 const integration_utils_1 = __webpack_require__(530);
 const integration_utils_2 = __webpack_require__(530);
 const listeners = {
@@ -999,10 +1176,8 @@ const listExpectedRolls = () => {
         dF: listeners.dF.length,
     };
 };
-// @ts-ignore
-unsafeWindow.listExpectedRolls = listExpectedRolls;
-// @ts-ignore
-unsafeWindow.expectedRolls = listExpectedRolls();
+(0, console_commands_1.registerConsoleCommands)({ listExpectedRolls });
+(0, console_commands_1.registerConsoleVariables)({ expectedRolls: listExpectedRolls() });
 const registerRollListener = (listener) => {
     switch (listener.diceSize) {
         case 4: {
@@ -1042,8 +1217,7 @@ const registerRollListener = (listener) => {
             console.error(`Expecting roll of unknown die size ${listener.diceSize}`);
         }
     }
-    // @ts-ignore
-    unsafeWindow.expectedRolls = listExpectedRolls();
+    (0, console_commands_1.registerConsoleVariables)({ expectedRolls: listExpectedRolls() });
 };
 exports.registerRollListener = registerRollListener;
 const handleDieRolled = (dieType, face, colorway, dieName, dieId) => {
@@ -1122,8 +1296,7 @@ const handleDieRolled = (dieType, face, colorway, dieName, dieId) => {
             });
         }
         listener.callback(rollEvent);
-        // @ts-ignore
-        unsafeWindow.expectedRolls = listExpectedRolls();
+        (0, console_commands_1.registerConsoleVariables)({ expectedRolls: listExpectedRolls() });
     }
     return rollEvent;
 };
@@ -1156,8 +1329,7 @@ const notifyDiceConnectionListeners = (connectedDie) => __awaiter(void 0, void 0
 });
 const getCurrentlyConnectedDice = () => JSON.parse(JSON.stringify(connectedDice));
 exports.getCurrentlyConnectedDice = getCurrentlyConnectedDice;
-// @ts-ignore
-unsafeWindow.pixelsIntegrationConnectedDice = exports.getCurrentlyConnectedDice;
+(0, console_commands_1.registerConsoleCommands)({ getConnectedDice: exports.getCurrentlyConnectedDice });
 const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
     const pixel = yield (0, pixels_web_connect_1.requestPixel)();
     pixel.addEventListener("status", (status) => {
@@ -1213,7 +1385,7 @@ const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
                         break;
                     }
                 }
-                (0, integration_utils_2.updateIntegrationEnabledForDice)({
+                (0, integration_utils_2.updateEnabledForDice)({
                     [dieType]: true,
                 });
                 notifyDiceConnectionListeners(connectedDie);
@@ -1290,7 +1462,7 @@ const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
                         console.error(`Unknown die type ${dieType} disconnecting. Don't know, what to do about it.`);
                     }
                 }
-                (0, integration_utils_2.updateIntegrationEnabledForDice)({
+                (0, integration_utils_2.updateEnabledForDice)({
                     d4: connectedDice.d4.length > 0,
                     d6: connectedDice.d6.length > 0,
                     d8: connectedDice.d8.length > 0,
@@ -1407,22 +1579,16 @@ const registerVirtualRollers = () => {
         }
         return results;
     };
-    // @ts-ignore
-    unsafeWindow.rollVirtualD4 = rollVirtualD4;
-    // @ts-ignore
-    unsafeWindow.rollVirtualD6 = rollVirtualD6;
-    // @ts-ignore
-    unsafeWindow.rollVirtualD8 = rollVirtualD8;
-    // @ts-ignore
-    unsafeWindow.rollVirtualD10 = rollVirtualD10;
-    // @ts-ignore
-    unsafeWindow.rollVirtualD00 = rollVirtualD00;
-    // @ts-ignore
-    unsafeWindow.rollVirtualD12 = rollVirtualD12;
-    // @ts-ignore
-    unsafeWindow.rollVirtualD20 = rollVirtualD20;
-    // @ts-ignore
-    unsafeWindow.rollVirtualDF = rollVirtualDF;
+    (0, console_commands_1.registerConsoleCommands)({
+        rollVirtualD4,
+        rollVirtualD6,
+        rollVirtualD8,
+        rollVirtualD10,
+        rollVirtualD00,
+        rollVirtualD12,
+        rollVirtualD20,
+        rollVirtualDF,
+    });
     return {
         rollVirtualD4,
         rollVirtualD6,
@@ -1444,8 +1610,7 @@ const registerRollCancelers = () => {
             dieType: "d4virtual",
         };
         (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d4.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
-        // @ts-ignore
-        unsafeWindow.expectedRolls = listExpectedRolls();
+        (0, console_commands_1.registerConsoleVariables)({ expectedRolls: listExpectedRolls() });
         return rollEvent;
     };
     const cancelD6Roll = () => {
@@ -1456,8 +1621,7 @@ const registerRollCancelers = () => {
             dieType: "d6virtual",
         };
         (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d6.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
-        // @ts-ignore
-        unsafeWindow.expectedRolls = listExpectedRolls();
+        (0, console_commands_1.registerConsoleVariables)({ expectedRolls: listExpectedRolls() });
         return rollEvent;
     };
     const cancelD8Roll = () => {
@@ -1468,8 +1632,7 @@ const registerRollCancelers = () => {
             dieType: "d8virtual",
         };
         (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d8.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
-        // @ts-ignore
-        unsafeWindow.expectedRolls = listExpectedRolls();
+        (0, console_commands_1.registerConsoleVariables)({ expectedRolls: listExpectedRolls() });
         return rollEvent;
     };
     const cancelD10Roll = () => {
@@ -1480,8 +1643,7 @@ const registerRollCancelers = () => {
             dieType: "d10virtual",
         };
         (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d10.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
-        // @ts-ignore
-        unsafeWindow.expectedRolls = listExpectedRolls();
+        (0, console_commands_1.registerConsoleVariables)({ expectedRolls: listExpectedRolls() });
         return rollEvent;
     };
     const cancelD00Roll = () => {
@@ -1492,8 +1654,7 @@ const registerRollCancelers = () => {
             dieType: "d00virtual",
         };
         (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d00.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
-        // @ts-ignore
-        unsafeWindow.expectedRolls = listExpectedRolls();
+        (0, console_commands_1.registerConsoleVariables)({ expectedRolls: listExpectedRolls() });
         return rollEvent;
     };
     const cancelD12Roll = () => {
@@ -1504,8 +1665,7 @@ const registerRollCancelers = () => {
             dieType: "d12virtual",
         };
         (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d12.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
-        // @ts-ignore
-        unsafeWindow.expectedRolls = listExpectedRolls();
+        (0, console_commands_1.registerConsoleVariables)({ expectedRolls: listExpectedRolls() });
         return rollEvent;
     };
     const cancelD20Roll = () => {
@@ -1516,8 +1676,7 @@ const registerRollCancelers = () => {
             dieType: "d20virtual",
         };
         (_a = listeners === null || listeners === void 0 ? void 0 : listeners.d20.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
-        // @ts-ignore
-        unsafeWindow.expectedRolls = listExpectedRolls();
+        (0, console_commands_1.registerConsoleVariables)({ expectedRolls: listExpectedRolls() });
         return rollEvent;
     };
     const cancelD100Roll = () => {
@@ -1534,8 +1693,7 @@ const registerRollCancelers = () => {
             dieType: "d00virtual",
         };
         (_b = listeners === null || listeners === void 0 ? void 0 : listeners.d00.shift()) === null || _b === void 0 ? void 0 : _b.callback(d00RollEvent);
-        // @ts-ignore
-        unsafeWindow.expectedRolls = listExpectedRolls();
+        (0, console_commands_1.registerConsoleVariables)({ expectedRolls: listExpectedRolls() });
         return [d10RollEvent, d00RollEvent];
     };
     const cancelDFRoll = () => {
@@ -1546,28 +1704,20 @@ const registerRollCancelers = () => {
             dieType: "dFvirtual",
         };
         (_a = listeners === null || listeners === void 0 ? void 0 : listeners.dF.shift()) === null || _a === void 0 ? void 0 : _a.callback(rollEvent);
-        // @ts-ignore
-        unsafeWindow.expectedRolls = listExpectedRolls();
+        (0, console_commands_1.registerConsoleVariables)({ expectedRolls: listExpectedRolls() });
         return rollEvent;
     };
-    // @ts-ignore
-    unsafeWindow.cancelD4Roll = cancelD4Roll;
-    // @ts-ignore
-    unsafeWindow.cancelD6Roll = cancelD6Roll;
-    // @ts-ignore
-    unsafeWindow.cancelD8Roll = cancelD8Roll;
-    // @ts-ignore
-    unsafeWindow.cancelD10Roll = cancelD10Roll;
-    // @ts-ignore
-    unsafeWindow.cancelD00Roll = cancelD00Roll;
-    // @ts-ignore
-    unsafeWindow.cancelD12Roll = cancelD12Roll;
-    // @ts-ignore
-    unsafeWindow.cancelD20Roll = cancelD20Roll;
-    // @ts-ignore
-    unsafeWindow.cancelD100Roll = cancelD100Roll;
-    // @ts-ignore
-    unsafeWindow.cancelDFRoll = cancelDFRoll;
+    (0, console_commands_1.registerConsoleCommands)({
+        cancelD4Roll,
+        cancelD6Roll,
+        cancelD8Roll,
+        cancelD10Roll,
+        cancelD00Roll,
+        cancelD12Roll,
+        cancelD20Roll,
+        cancelD100Roll,
+        cancelDFRoll,
+    });
     return {
         cancelD4Roll,
         cancelD6Roll,
@@ -1621,39 +1771,41 @@ const modifierRegex = /^(?<count>-?\d+)$/;
  */
 const parseRollRequest = (rollQuery) => {
     const rollParts = extractRollParts(rollQuery);
-    const enabledForDice = (0, integration_utils_1.getIntegrationEnabledForDice)();
+    const enabledForDiceTypes = (0, integration_utils_1.getEnabledForDiceOverview)();
     const rollRequest = new types_1.RollRequest();
-    if (enabledForDice.d4) {
+    if (enabledForDiceTypes.d4) {
         rollRequest.d4 = countDiceMatchingRegex(rollParts, d4Regex);
     }
-    if (enabledForDice.d6) {
+    if (enabledForDiceTypes.d6) {
         rollRequest.d6 = countDiceMatchingRegex(rollParts, d6Regex);
     }
-    if (enabledForDice.d8) {
+    if (enabledForDiceTypes.d8) {
         rollRequest.d8 = countDiceMatchingRegex(rollParts, d8Regex);
     }
-    if (enabledForDice.d10) {
+    if (enabledForDiceTypes.d10) {
         rollRequest.d10 = countDiceMatchingRegex(rollParts, d10Regex);
     }
-    if (enabledForDice.d12) {
+    if (enabledForDiceTypes.d12) {
         rollRequest.d12 = countDiceMatchingRegex(rollParts, d12Regex);
     }
-    if (enabledForDice.d20) {
+    if (enabledForDiceTypes.d20) {
         rollRequest.d20 = countDiceMatchingRegex(rollParts, d20Regex);
     }
-    if (enabledForDice.d10 && enabledForDice.d00) {
+    if (enabledForDiceTypes.d10 && enabledForDiceTypes.d00) {
         rollRequest.d100 = countDiceMatchingRegex(rollParts, d100Regex);
     }
     rollRequest.modifier = countDiceMatchingRegex(rollParts, modifierRegex);
     const unusedParts = rollParts
-        .filter((rollPart) => !(enabledForDice.d4 && d4Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.d6 && d6Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.d8 && d8Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.d10 && d10Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.d12 && d12Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.d20 && d20Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.d10 && enabledForDice.d00 && d100Regex.test(rollPart)))
-        .filter((rollPart) => !(enabledForDice.dF && dFRegex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDiceTypes.d4 && d4Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDiceTypes.d6 && d6Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDiceTypes.d8 && d8Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDiceTypes.d10 && d10Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDiceTypes.d12 && d12Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDiceTypes.d20 && d20Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDiceTypes.d10 &&
+        enabledForDiceTypes.d00 &&
+        d100Regex.test(rollPart)))
+        .filter((rollPart) => !(enabledForDiceTypes.dF && dFRegex.test(rollPart)))
         .filter((rollPart) => !modifierRegex.test(rollPart));
     if (unusedParts.length > 0) {
         if ((0, integration_utils_1.isDebugEnabled)()) {
@@ -2187,6 +2339,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.setupPixelsMenu = void 0;
+const console_commands_1 = __webpack_require__(816);
 const integration_utils_1 = __webpack_require__(530);
 const roll_handler_1 = __webpack_require__(952);
 const translations_1 = __webpack_require__(414);
@@ -2630,7 +2783,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
     pixelsMenuButton.setAttribute("aria-label", buttonAriaLabel);
     pixelsMenuButton.setAttribute("data-cy", "top-nav-nexus-pixels-menu-btn");
     // Add an onClick handler to the button. This will refer to a global function.
-    pixelsMenuButton.setAttribute("onclick", "pixelsIntegrationTogglePixelsMenu(event)");
+    pixelsMenuButton.setAttribute("onclick", "pixelsIntegration.togglePixelsMenu(event)");
     let pixelsMenuTooltip;
     const pixelsMenuButtonClickHandler = (e) => {
         var _a, _b;
@@ -2716,7 +2869,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                 connectPixelDieButton.setAttribute("tabindex", "0"); // TODO Probably we do want a tab index here
                 connectPixelDieButton.setAttribute("type", "button");
                 connectPixelDieButton.setAttribute("aria-label", (0, translations_1.getTranslation)("ui.pixelsMenu.settings.connectDieButton.ariaLabel"));
-                connectPixelDieButton.setAttribute("onclick", "pixelsIntegrationConnectToPixelsDie()");
+                connectPixelDieButton.setAttribute("onclick", "pixelsIntegration.connectToPixelsDie()");
                 pixelsSettingsBodyColumn.appendChild(connectPixelDieButton);
                 const connectPixelDieButtonText = document.createElement("h2");
                 connectPixelDieButtonText.classList.add("MuiTypography-root", "MuiTypography-h2", "MuiTypography-noWrap", "css-pixels-connect-button-text");
@@ -2747,7 +2900,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                     },
                 });
                 usePixelsCheckboxButton.setAttribute("type", "button");
-                usePixelsCheckboxButton.setAttribute("onclick", "togglePixelsItegrationEnabled()");
+                usePixelsCheckboxButton.setAttribute("onclick", "pixelsItegration.toggleEnabled()");
                 usePixelsCheckboxButton.id = "toggle-pixel-integration-enabled";
                 usePixelsCheckboxHolder.appendChild(usePixelsCheckboxButton);
                 const usePixelsCheckboxButtonSpan = document.createElement("span");
@@ -2777,7 +2930,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                 pixelsDiceOverviewContainer.appendChild(pixelsDiceOverviewBody);
                 const createDieImageButton = (cssClass, imageDieType) => {
                     const dieImageButton = document.createElement("button");
-                    dieImageButton.setAttribute("onclick", `togglePixelsIntegrationForDieType("${imageDieType}")`);
+                    dieImageButton.setAttribute("onclick", `pixelsIntegration.toggleForDieType("${imageDieType}")`);
                     const determineColorVariant = (integrationEnabledForDice) => {
                         let isEnabledForDieType = false;
                         switch (imageDieType) {
@@ -2818,11 +2971,11 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                     };
                     const dieImage = document.createElement("img");
                     dieImage.classList.add(cssClass);
-                    const integrationEnabledForDice = (0, integration_utils_1.getIntegrationEnabledForDice)();
+                    const integrationEnabledForDice = (0, integration_utils_1.getEnabledForDiceOverview)();
                     const colorVariant = determineColorVariant(integrationEnabledForDice);
                     dieImage.setAttribute("src", `https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/${imageDieType}_${colorVariant}.svg`);
                     dieImage.setAttribute("alt", `pixels ${imageDieType}`);
-                    (0, integration_utils_1.registerIntegrationForDiceEnabledListener)({
+                    (0, integration_utils_1.registerIntegrationEnabledForDiceListener)({
                         predicate: (dieSizes) => {
                             switch (imageDieType) {
                                 case "d4":
@@ -2992,10 +3145,10 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
             (_b = gameRulesButton.parentElement) === null || _b === void 0 ? void 0 : _b.insertBefore(pixelsMenuTooltip, gameRulesButton.parentElement.lastChild);
         }
     };
-    // @ts-ignore
-    unsafeWindow.pixelsIntegrationTogglePixelsMenu = pixelsMenuButtonClickHandler;
-    // @ts-ignore
-    unsafeWindow.pixelsIntegrationConnectToPixelsDie = roll_handler_1.connectToDie;
+    (0, console_commands_1.registerConsoleCommands)({
+        togglePixelsMenu: pixelsMenuButtonClickHandler,
+        connectToPixelsDie: roll_handler_1.connectToDie,
+    });
     // Insert our new element as the last menu item
     (_a = gameRulesButton.parentElement) === null || _a === void 0 ? void 0 : _a.insertBefore(pixelsMenuButton, (_b = gameRulesButton.parentElement) === null || _b === void 0 ? void 0 : _b.lastChild);
     // Insert the style element for styling the pixels menu

@@ -7,8 +7,12 @@ import {
 	repeatConnect,
 	requestPixel,
 } from "@systemic-games/pixels-web-connect";
+import {
+	registerConsoleCommands,
+	registerConsoleVariables,
+} from "./console-commands";
 import { isDebugEnabled, setEnabledForCharacter } from "./integration-utils";
-import { updateIntegrationEnabledForDice } from "./integration-utils";
+import { updateEnabledForDice } from "./integration-utils";
 import type { DiceSize } from "./types";
 
 export type DieType =
@@ -96,10 +100,8 @@ const listExpectedRolls = (): {
 		dF: listeners.dF.length,
 	};
 };
-// @ts-ignore
-unsafeWindow.listExpectedRolls = listExpectedRolls;
-// @ts-ignore
-unsafeWindow.expectedRolls = listExpectedRolls();
+registerConsoleCommands({ listExpectedRolls });
+registerConsoleVariables({ expectedRolls: listExpectedRolls() });
 
 export const registerRollListener = (listener: RollEventListener): void => {
 	switch (listener.diceSize) {
@@ -140,8 +142,7 @@ export const registerRollListener = (listener: RollEventListener): void => {
 			console.error(`Expecting roll of unknown die size ${listener.diceSize}`);
 		}
 	}
-	// @ts-ignore
-	unsafeWindow.expectedRolls = listExpectedRolls();
+	registerConsoleVariables({ expectedRolls: listExpectedRolls() });
 };
 
 const handleDieRolled = (
@@ -226,8 +227,7 @@ const handleDieRolled = (
 		}
 		listener.callback(rollEvent);
 
-		// @ts-ignore
-		unsafeWindow.expectedRolls = listExpectedRolls();
+		registerConsoleVariables({ expectedRolls: listExpectedRolls() });
 	}
 	return rollEvent;
 };
@@ -291,8 +291,7 @@ const notifyDiceConnectionListeners = async (
 
 export const getCurrentlyConnectedDice = (): ConnectedDice =>
 	JSON.parse(JSON.stringify(connectedDice));
-// @ts-ignore
-unsafeWindow.pixelsIntegrationConnectedDice = getCurrentlyConnectedDice;
+registerConsoleCommands({ getConnectedDice: getCurrentlyConnectedDice });
 
 export const connectToDie = async () => {
 	const pixel = await requestPixel();
@@ -355,7 +354,7 @@ export const connectToDie = async () => {
 						break;
 					}
 				}
-				updateIntegrationEnabledForDice({
+				updateEnabledForDice({
 					[dieType]: true,
 				});
 				notifyDiceConnectionListeners(connectedDie);
@@ -467,7 +466,7 @@ export const connectToDie = async () => {
 						);
 					}
 				}
-				updateIntegrationEnabledForDice({
+				updateEnabledForDice({
 					d4: connectedDice.d4.length > 0,
 					d6: connectedDice.d6.length > 0,
 					d8: connectedDice.d8.length > 0,
@@ -643,22 +642,16 @@ const registerVirtualRollers = () => {
 		return results;
 	};
 
-	// @ts-ignore
-	unsafeWindow.rollVirtualD4 = rollVirtualD4;
-	// @ts-ignore
-	unsafeWindow.rollVirtualD6 = rollVirtualD6;
-	// @ts-ignore
-	unsafeWindow.rollVirtualD8 = rollVirtualD8;
-	// @ts-ignore
-	unsafeWindow.rollVirtualD10 = rollVirtualD10;
-	// @ts-ignore
-	unsafeWindow.rollVirtualD00 = rollVirtualD00;
-	// @ts-ignore
-	unsafeWindow.rollVirtualD12 = rollVirtualD12;
-	// @ts-ignore
-	unsafeWindow.rollVirtualD20 = rollVirtualD20;
-	// @ts-ignore
-	unsafeWindow.rollVirtualDF = rollVirtualDF;
+	registerConsoleCommands({
+		rollVirtualD4,
+		rollVirtualD6,
+		rollVirtualD8,
+		rollVirtualD10,
+		rollVirtualD00,
+		rollVirtualD12,
+		rollVirtualD20,
+		rollVirtualDF,
+	});
 
 	return {
 		rollVirtualD4,
@@ -682,8 +675,7 @@ const registerRollCancelers = () => {
 		};
 		listeners?.d4.shift()?.callback(rollEvent);
 
-		// @ts-ignore
-		unsafeWindow.expectedRolls = listExpectedRolls();
+		registerConsoleVariables({ expectedRolls: listExpectedRolls() });
 
 		return rollEvent;
 	};
@@ -696,8 +688,7 @@ const registerRollCancelers = () => {
 		};
 		listeners?.d6.shift()?.callback(rollEvent);
 
-		// @ts-ignore
-		unsafeWindow.expectedRolls = listExpectedRolls();
+		registerConsoleVariables({ expectedRolls: listExpectedRolls() });
 
 		return rollEvent;
 	};
@@ -710,8 +701,7 @@ const registerRollCancelers = () => {
 		};
 		listeners?.d8.shift()?.callback(rollEvent);
 
-		// @ts-ignore
-		unsafeWindow.expectedRolls = listExpectedRolls();
+		registerConsoleVariables({ expectedRolls: listExpectedRolls() });
 
 		return rollEvent;
 	};
@@ -724,8 +714,7 @@ const registerRollCancelers = () => {
 		};
 		listeners?.d10.shift()?.callback(rollEvent);
 
-		// @ts-ignore
-		unsafeWindow.expectedRolls = listExpectedRolls();
+		registerConsoleVariables({ expectedRolls: listExpectedRolls() });
 
 		return rollEvent;
 	};
@@ -738,8 +727,7 @@ const registerRollCancelers = () => {
 		};
 		listeners?.d00.shift()?.callback(rollEvent);
 
-		// @ts-ignore
-		unsafeWindow.expectedRolls = listExpectedRolls();
+		registerConsoleVariables({ expectedRolls: listExpectedRolls() });
 
 		return rollEvent;
 	};
@@ -752,8 +740,7 @@ const registerRollCancelers = () => {
 		};
 		listeners?.d12.shift()?.callback(rollEvent);
 
-		// @ts-ignore
-		unsafeWindow.expectedRolls = listExpectedRolls();
+		registerConsoleVariables({ expectedRolls: listExpectedRolls() });
 
 		return rollEvent;
 	};
@@ -766,8 +753,7 @@ const registerRollCancelers = () => {
 		};
 		listeners?.d20.shift()?.callback(rollEvent);
 
-		// @ts-ignore
-		unsafeWindow.expectedRolls = listExpectedRolls();
+		registerConsoleVariables({ expectedRolls: listExpectedRolls() });
 
 		return rollEvent;
 	};
@@ -786,8 +772,7 @@ const registerRollCancelers = () => {
 		};
 		listeners?.d00.shift()?.callback(d00RollEvent);
 
-		// @ts-ignore
-		unsafeWindow.expectedRolls = listExpectedRolls();
+		registerConsoleVariables({ expectedRolls: listExpectedRolls() });
 
 		return [d10RollEvent, d00RollEvent];
 	};
@@ -800,30 +785,22 @@ const registerRollCancelers = () => {
 		};
 		listeners?.dF.shift()?.callback(rollEvent);
 
-		// @ts-ignore
-		unsafeWindow.expectedRolls = listExpectedRolls();
+		registerConsoleVariables({ expectedRolls: listExpectedRolls() });
 
 		return rollEvent;
 	};
 
-	// @ts-ignore
-	unsafeWindow.cancelD4Roll = cancelD4Roll;
-	// @ts-ignore
-	unsafeWindow.cancelD6Roll = cancelD6Roll;
-	// @ts-ignore
-	unsafeWindow.cancelD8Roll = cancelD8Roll;
-	// @ts-ignore
-	unsafeWindow.cancelD10Roll = cancelD10Roll;
-	// @ts-ignore
-	unsafeWindow.cancelD00Roll = cancelD00Roll;
-	// @ts-ignore
-	unsafeWindow.cancelD12Roll = cancelD12Roll;
-	// @ts-ignore
-	unsafeWindow.cancelD20Roll = cancelD20Roll;
-	// @ts-ignore
-	unsafeWindow.cancelD100Roll = cancelD100Roll;
-	// @ts-ignore
-	unsafeWindow.cancelDFRoll = cancelDFRoll;
+	registerConsoleCommands({
+		cancelD4Roll,
+		cancelD6Roll,
+		cancelD8Roll,
+		cancelD10Roll,
+		cancelD00Roll,
+		cancelD12Roll,
+		cancelD20Roll,
+		cancelD100Roll,
+		cancelDFRoll,
+	});
 
 	return {
 		cancelD4Roll,

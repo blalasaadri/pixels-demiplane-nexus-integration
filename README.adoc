@@ -129,6 +129,7 @@ Once the button, click on it to open what will henceforth be refered to as the _
 .The Pixels Menu before anything has been set up
 image:pixels-menu-new-pathfinder.png[]
 
+[#connecting-a-pixel]
 === Connecting Pixels dice
 
 In the <<pixels-menu, Pixels Menu>>, click on the button _Connect Pixels die_ in the _Dice Settings_ area to start connecting your pixels dice.
@@ -238,16 +239,179 @@ To use them, open the DevTools in the browser tab in which you have your charact
 
 Then select the tab `Console` in the DevTools.
 
-=== Basic operations for the integration
+[TIP]
+====
+All of the commands provided by the integration start with `pixelsIntegration.` and https://en.wikipedia.org/wiki/Command-line_completion[tab completion] is supported.
+====
+
+=== Debug mode
+
+The integration has a _debug mode_, which when active will cause a lot of information to be logged to the console.
+This does not change the behaviour of the integration.
+
+[horizontal]
+`pixelsIntegration.isDebugModeEnabled()`:: Will return `true` if debug mode is enabled and `false` otherwise.
+`pixelsIntegration.enableDebugMode()`:: Will switch the integrations debug on and then return `true`.
+`pixelsIntegration.disableDebugMode()`:: Will switch the integrations debug off and then return `false`.
+`pixelsIntegration.toggleDebugMode()`:: Will switch the integrations debug mode on or off. Will return `true` if the debugging mode has been switched on, and `false` if it has been switched off.
+
+=== Connecting a Pixels die
+
+You can trigger the connection to a Pixels die via a command.
+The result will be the same as when using the <<connecting-a-pixel, button in the Pixels Menu>>.
+
+[horizontal]
+`pixelsIntegration.connectToPixelsDie()`:: Start the connection process of a Pixels die.
+
+=== Enabling and disabling things
+
+==== For a character
 
 The integration can be enabled and disabled via console commands.
+This does the same as explained in <<enable-per-character>>.
 
 You have the following related commands available to you in the browser console:
 
+.Enabling the integration per character sheet
 [horizontal]
-`isPixelsIntegrationEnabled()`:: Will return `true` if the integration is enabled or `false` if it isn't. By default it is `true` after it is installed.
-`togglePixelsItegrationEnabled()`:: Will switch the integration on or off. Will return `true` if the integration has been switched on, and `false` if it has been switched off.
-`togglePixelsItegrationDebug()`:: Will switch the integrations debug mode on or off. Will return `true` if the debugging mode has been switched on, and `false` if it has been switched off. When debug mode is activated, many actions will cause messages to be printed in the console.
+`pixelsIntegration.isEnabledForCharacter(<characterId>)`:: Will return `true` if the integration is enabled or `false` if it isn't.
+`pixelsIntegration.enableForCharacter(<characterId>)`:: Will enable the integration for the provided character. Always returns `true`.
+`pixelsIntegration.disableForCharacter(<characterId>)`:: Will disable the integration for the provided character. Always returns `false`.
+`pixelsIntegration.toggleEnabledForCharacter(<characterId>)`:: Will switch the integration on or off. Returns `true` if the integration has been switched on, and `false` if it has been switched off.
+
+The `<characterId>` parameter is an **optional** string for all of these functions.
+It refers to the last part of the URL, e.g. `1234abcd-56ef-01ab-23cd-456789efabcde`.
+If not provided by the user, the currently opened character sheet will be used.
+
+.Examples of enabling and disabling the integration
+[source,js]
+----
+// Enable the integration for the current character
+pixelsIntegration.enableForCharacter()
+// Output
+true
+
+// Enable the integration for a specific character
+pixelsIntegration.enableForCharacter('1234abcd-56ef-01ab-23cd-456789efabcde');
+// Output
+true
+
+// Check whether the integration is active for the current character
+pixelsIntegration.isEnabledForCharacter()
+// Output
+true
+
+// Toggle whether the integration is enabled for a specific character
+pixelsIntegration.toggleEnabledForCharacter('1234abcd-56ef-01ab-23cd-456789efabcde');
+// Output
+false
+
+// Check whether the integration is active for a specific character
+pixelsIntegration.isEnabledForCharacter('1234abcd-56ef-01ab-23cd-456789efabcde')
+// Output
+false
+----
+
+==== Per die type
+
+The integration can be enabled and disabled for specific die types, as explained in <<enable-per-die-type>>.
+
+[NOTE]
+====
+Disabling the integration per character always has priority over enabling it per die type.
+So the integration may be enabled for certain die types but will not wait for Pixels to be rolled, if the integration is disabled for a character.
+====
+
+You have the following related commands available to you in the browser console:
+
+.Enabling the integration per character sheet
+[horizontal]
+`pixelsIntegration.isEnabledForDieType(<dieType>)`:: Will return `true` if the integration is enabled for the give die type or `false` if it isn't.
+`pixelsIntegration.enableForDieType(<dieType>)`:: Will enable the integration for the provided die type. Always returns `true`.
+`pixelsIntegration.disableForDieType(<dieType>)`:: Will disable the integration for the provided die type. Always returns `false`.
+`pixelsIntegration.toggleForDieType(<dieType>)`:: Will switch the integration on or off for the give die type . Returns `true` if the integration has been switched on, and `false` if it has been switched off.
+
+The `<dieType>` parameter is **required**, and can be one of the following:
+
+The possible types are:
+[horizontal]
+`'d4'``:: for d4s
+`'d6'` or `'d6pipped'`:: for d6s (both enable both numbered and pipped d6s)
+`'d8'`:: for d8s
+`'d10'`:: for d10s
+`'d00'`:: for d00s
+`'d20'`:: for d20s
+`'dF'` or `'d6fudge'`:: for fudge dice
+
+.Examples for enabling and disabling the integration for given dice
+[source,js]
+----
+// Check, whether the integration is enabled for d20s
+pixelsIntegration.isEnabledForDieType('d20')
+// Output
+false
+
+// Enable the integration for d20s
+pixelsIntegration.enableForDieType('d20')
+// Output
+true
+
+// Check, whether the integration is enabled for fudge dice
+pixelsIntegration.isEnabledForDieType('dF')
+// Output
+false
+
+// Try to disable the integration for fudge dice (even though it already is)
+pixelsIntegration.disableForDieType('dF')
+// Output
+false
+
+// Toggle the integration for d6s
+pixelsIntegration.toggleForDieType('d6')
+// Output
+true
+----
+
+=== Expected rolls
+When the pixels integration is active for both a character and a die type, and a roll with that die type is requested by Demiplane Nexus, you can check which rolls are currently expected as follows:
+
+[horizontal]
+`pixelsIntegration.listExpectedRolls()`:: List the rolls that are currently expected.
+
+.Example for displaying requested rolls
+[source,js]
+----
+// Request the currently requested rolls, after a d4 and a d20 have been requested
+pixelsIntegration.listExpectedRolls()
+// Output
+{
+    "d4": 1,
+    "d6": 0,
+    "d8": 0,
+    "d10": 0,
+    "d00": 0,
+    "d12": 0,
+    "d20": 1,
+    "dF": 0
+}
+
+// After rolling a d20, the output will change
+pixelsIntegration.listExpectedRolls()
+// Output
+{
+    "d4": 1,
+    "d6": 0,
+    "d8": 0,
+    "d10": 0,
+    "d00": 0,
+    "d12": 0,
+    "d20": 0,
+    "dF": 0
+}
+----
+
+// === Canceling rolls
+// TODO Doesn't currently work properly, so let's not document it
 
 === Rolling virtual dice
 If you don't (yet) have (enough) Pixels dice but want to test the integration nevertheless, there is a way to roll so called virtual dice instead.
@@ -256,23 +420,23 @@ These don't rely on the Demiplane rolling mechanism but instead do the same thin
 You have the following related commands available to you in the browser console:
 
 [horizontal]
-`rollVirtualD4(<count>)`:: Used to roll a single d4.
-`rollVirtualD6(<count>)`:: Used to roll a single d6.
-`rollVirtualD8(<count>)`:: Used to roll a single d8.
-`rollVirtualD10(<count>)`:: Used to roll a single d10.
-`rollVirtualD00(<count>)`:: Used to roll a single d00 (percentile die).
-`rollVirtualD12(<count>)`:: Used to roll a single d12.
-`rollVirtualD20(<count>)`:: Used to roll a single d20.
-`rollVirtualDF(<count>)`:: Used to roll a single dF (fudge die).
+`pixelsIntegration.rollVirtualD4(<count>)`:: Used to roll a single d4.
+`pixelsIntegration.rollVirtualD6(<count>)`:: Used to roll a single d6.
+`pixelsIntegration.rollVirtualD8(<count>)`:: Used to roll a single d8.
+`pixelsIntegration.rollVirtualD10(<count>)`:: Used to roll a single d10.
+`pixelsIntegration.rollVirtualD00(<count>)`:: Used to roll a single d00 (percentile die).
+`pixelsIntegration.rollVirtualD12(<count>)`:: Used to roll a single d12.
+`pixelsIntegration.rollVirtualD20(<count>)`:: Used to roll a single d20.
+`pixelsIntegration.rollVirtualDF(<count>)`:: Used to roll a single dF (fudge die).
 
-The `<count>` parameter is optional and can be used to define the number of dice of that type to be rolled.
+The `<count>` parameter is **optional** and can be used to define the number of dice of that type to be rolled.
 By default (if no value or a value smaller than 1 is given) a single die is rolled.
 
 .Examples for rolling virtual dice
 [source,js]
 ----
 // Roll 1d6
-rollVirtualD6()
+pixelsIntegration.rollVirtualD6()
 // Output:
 [
     {
@@ -287,7 +451,7 @@ rollVirtualD6()
 ]
 
 // Roll 2d20
-rollVirtualD20(2)
+pixelsIntegration.rollVirtualD20(2)
 // Output:
 [{
         "success": true,
@@ -309,24 +473,6 @@ rollVirtualD20(2)
     }
 ]
 ----
-
-=== Enabling and disabling specific die types
-As stated in <<enable-per-die-type>>, not every user will have each type of Pixels die available. (E.g. many people only get d20s.)
-For that purpose, you can enable and disable the integration for specific dice types both in the <<pixels-menu,Pixels Menu>> and via the following commands:
-
-[horizontal]
-`enablePixelsIntegrationForDieType(type)`:: Enable a specific die type for the integration.
-`disablePixelsIntegrationForDieType(type)`:: Disable a specific die type for the integration.
-
-The possible types are:
-[horizontal]
-d4:: `'d4'`
-d6:: `'d6'` or `'d6pipped'` (both enable both numbered and pipped d6s)
-d8:: `'d8'`
-d10:: `'d10'`
-d00:: `'d00'`
-d20:: `'d20'`
-fudge dice:: `'dF'` or `'d6fudge'`
 
 == Legalese
 

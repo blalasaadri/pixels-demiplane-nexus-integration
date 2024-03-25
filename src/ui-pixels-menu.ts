@@ -1,10 +1,11 @@
+import { registerConsoleCommands } from "./console-commands";
 import {
 	type IntegrationEnabledForDice,
-	getIntegrationEnabledForDice,
+	getEnabledForDiceOverview,
 	isDebugEnabled,
 	isEnabledForCharacter,
 	registerEnabledForCharacterListener,
-	registerIntegrationForDiceEnabledListener,
+	registerIntegrationEnabledForDiceListener,
 } from "./integration-utils";
 import {
 	type ConnectedDice,
@@ -467,7 +468,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 	// Add an onClick handler to the button. This will refer to a global function.
 	pixelsMenuButton.setAttribute(
 		"onclick",
-		"pixelsIntegrationTogglePixelsMenu(event)",
+		"pixelsIntegration.togglePixelsMenu(event)",
 	);
 
 	let pixelsMenuTooltip: HTMLDivElement | undefined;
@@ -627,7 +628,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				);
 				connectPixelDieButton.setAttribute(
 					"onclick",
-					"pixelsIntegrationConnectToPixelsDie()",
+					"pixelsIntegration.connectToPixelsDie()",
 				);
 				pixelsSettingsBodyColumn.appendChild(connectPixelDieButton);
 
@@ -692,7 +693,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				usePixelsCheckboxButton.setAttribute("type", "button");
 				usePixelsCheckboxButton.setAttribute(
 					"onclick",
-					"togglePixelsItegrationEnabled()",
+					"pixelsItegration.toggleEnabled()",
 				);
 				usePixelsCheckboxButton.id = "toggle-pixel-integration-enabled";
 				usePixelsCheckboxHolder.appendChild(usePixelsCheckboxButton);
@@ -773,7 +774,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					const dieImageButton = document.createElement("button");
 					dieImageButton.setAttribute(
 						"onclick",
-						`togglePixelsIntegrationForDieType("${imageDieType}")`,
+						`pixelsIntegration.toggleForDieType("${imageDieType}")`,
 					);
 
 					const determineColorVariant = (
@@ -818,7 +819,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					};
 					const dieImage = document.createElement("img");
 					dieImage.classList.add(cssClass);
-					const integrationEnabledForDice = getIntegrationEnabledForDice();
+					const integrationEnabledForDice = getEnabledForDiceOverview();
 					const colorVariant = determineColorVariant(integrationEnabledForDice);
 					dieImage.setAttribute(
 						"src",
@@ -826,7 +827,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 					dieImage.setAttribute("alt", `pixels ${imageDieType}`);
 
-					registerIntegrationForDiceEnabledListener({
+					registerIntegrationEnabledForDiceListener({
 						predicate: (dieSizes) => {
 							switch (imageDieType) {
 								case "d4":
@@ -1159,10 +1160,10 @@ export const setupPixelsMenu = async (): Promise<void> => {
 			);
 		}
 	};
-	// @ts-ignore
-	unsafeWindow.pixelsIntegrationTogglePixelsMenu = pixelsMenuButtonClickHandler;
-	// @ts-ignore
-	unsafeWindow.pixelsIntegrationConnectToPixelsDie = connectToDie;
+	registerConsoleCommands({
+		togglePixelsMenu: pixelsMenuButtonClickHandler,
+		connectToPixelsDie: connectToDie,
+	});
 
 	// Insert our new element as the last menu item
 	gameRulesButton.parentElement?.insertBefore(

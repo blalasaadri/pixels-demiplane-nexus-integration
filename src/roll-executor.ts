@@ -438,7 +438,6 @@ export const mergeRollResults = (
 		let modifiersAdded = false;
 
 		for (const rollCommandPart of rollCommandParts) {
-			console.log(`Testing ${rollCommandPart}...`);
 			if (rollCommandDiePartRegex.test(rollCommandPart)) {
 				const matches = rollCommandPart.match(rollCommandDiePartRegex);
 				const { count, dieType } = matches?.groups as {

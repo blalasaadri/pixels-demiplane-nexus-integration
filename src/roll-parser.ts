@@ -1,7 +1,4 @@
-import {
-	getIntegrationEnabledForDice,
-	isDebugEnabled,
-} from "./integration-utils";
+import { getEnabledForDiceOverview, isDebugEnabled } from "./integration-utils";
 import { RollRequest } from "./types";
 
 const extractRollParts = (rollQuery: string): string[] => {
@@ -40,44 +37,48 @@ const modifierRegex = /^(?<count>-?\d+)$/;
 export const parseRollRequest = (rollQuery: string): RollRequest => {
 	const rollParts = extractRollParts(rollQuery);
 
-	const enabledForDice = getIntegrationEnabledForDice();
+	const enabledForDiceTypes = getEnabledForDiceOverview();
 
 	const rollRequest = new RollRequest();
-	if (enabledForDice.d4) {
+	if (enabledForDiceTypes.d4) {
 		rollRequest.d4 = countDiceMatchingRegex(rollParts, d4Regex);
 	}
-	if (enabledForDice.d6) {
+	if (enabledForDiceTypes.d6) {
 		rollRequest.d6 = countDiceMatchingRegex(rollParts, d6Regex);
 	}
-	if (enabledForDice.d8) {
+	if (enabledForDiceTypes.d8) {
 		rollRequest.d8 = countDiceMatchingRegex(rollParts, d8Regex);
 	}
-	if (enabledForDice.d10) {
+	if (enabledForDiceTypes.d10) {
 		rollRequest.d10 = countDiceMatchingRegex(rollParts, d10Regex);
 	}
-	if (enabledForDice.d12) {
+	if (enabledForDiceTypes.d12) {
 		rollRequest.d12 = countDiceMatchingRegex(rollParts, d12Regex);
 	}
-	if (enabledForDice.d20) {
+	if (enabledForDiceTypes.d20) {
 		rollRequest.d20 = countDiceMatchingRegex(rollParts, d20Regex);
 	}
-	if (enabledForDice.d10 && enabledForDice.d00) {
+	if (enabledForDiceTypes.d10 && enabledForDiceTypes.d00) {
 		rollRequest.d100 = countDiceMatchingRegex(rollParts, d100Regex);
 	}
 	rollRequest.modifier = countDiceMatchingRegex(rollParts, modifierRegex);
 
 	const unusedParts = rollParts
-		.filter((rollPart) => !(enabledForDice.d4 && d4Regex.test(rollPart)))
-		.filter((rollPart) => !(enabledForDice.d6 && d6Regex.test(rollPart)))
-		.filter((rollPart) => !(enabledForDice.d8 && d8Regex.test(rollPart)))
-		.filter((rollPart) => !(enabledForDice.d10 && d10Regex.test(rollPart)))
-		.filter((rollPart) => !(enabledForDice.d12 && d12Regex.test(rollPart)))
-		.filter((rollPart) => !(enabledForDice.d20 && d20Regex.test(rollPart)))
+		.filter((rollPart) => !(enabledForDiceTypes.d4 && d4Regex.test(rollPart)))
+		.filter((rollPart) => !(enabledForDiceTypes.d6 && d6Regex.test(rollPart)))
+		.filter((rollPart) => !(enabledForDiceTypes.d8 && d8Regex.test(rollPart)))
+		.filter((rollPart) => !(enabledForDiceTypes.d10 && d10Regex.test(rollPart)))
+		.filter((rollPart) => !(enabledForDiceTypes.d12 && d12Regex.test(rollPart)))
+		.filter((rollPart) => !(enabledForDiceTypes.d20 && d20Regex.test(rollPart)))
 		.filter(
 			(rollPart) =>
-				!(enabledForDice.d10 && enabledForDice.d00 && d100Regex.test(rollPart)),
+				!(
+					enabledForDiceTypes.d10 &&
+					enabledForDiceTypes.d00 &&
+					d100Regex.test(rollPart)
+				),
 		)
-		.filter((rollPart) => !(enabledForDice.dF && dFRegex.test(rollPart)))
+		.filter((rollPart) => !(enabledForDiceTypes.dF && dFRegex.test(rollPart)))
 		.filter((rollPart) => !modifierRegex.test(rollPart));
 	if (unusedParts.length > 0) {
 		if (isDebugEnabled()) {
