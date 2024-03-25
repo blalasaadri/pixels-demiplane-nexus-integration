@@ -9,7 +9,7 @@ const getDiceSvg = (
 	width: number,
 	height: number,
 ): Element | undefined => {
-	const diceRollerGrids = unsafeWindow.document.getElementsByClassName(
+	const diceRollerGrids = document.getElementsByClassName(
 		"dice-roller__dice-grid",
 	);
 	if (diceRollerGrids.length === 0) {
@@ -67,7 +67,7 @@ export const addRollsExpectedNotification = (
 ): Element | undefined => {
 	const { gameSystem } = characterSheetInfo();
 
-	const notificationParents = unsafeWindow.document.getElementsByClassName(
+	const notificationParents = document.getElementsByClassName(
 		getRollDiceHistoryCssClass(),
 	);
 	if (notificationParents.length === 0) {
@@ -303,7 +303,7 @@ export const addRollsExpectedNotification = (
 					const createDieSymbolFigure = (
 						dieSize: "d4" | "d6" | "d8" | "d10" | "d12" | "d20",
 					): HTMLDivElement => {
-						const dieFigure = unsafeWindow.document.createElement("div");
+						const dieFigure = document.createElement("div");
 						dieFigure.classList.add(
 							"MuiGrid-root",
 							"MuiGrid-item",
@@ -322,7 +322,7 @@ export const addRollsExpectedNotification = (
 						`,
 						);
 
-						const figure = unsafeWindow.document.createElement("figure");
+						const figure = document.createElement("figure");
 						figure.classList.add(
 							"history-item-result__image-container",
 							"MuiBox-root",
@@ -339,7 +339,7 @@ export const addRollsExpectedNotification = (
 						dieFigure.appendChild(figure);
 
 						// This is left empty for the time being, though it could in future be filled with the actually rolled result as a kind of live update.
-						const resultNumber = unsafeWindow.document.createElement("p");
+						const resultNumber = document.createElement("p");
 						resultNumber.classList.add(
 							"MuiTypography-root",
 							"MuiTypography-body1",
@@ -421,7 +421,7 @@ export const removeRollsExpectedNotification = (
 		}
 		return;
 	}
-	const notificationParents = unsafeWindow.document.getElementsByClassName(
+	const notificationParents = document.getElementsByClassName(
 		getRollDiceHistoryCssClass(),
 	);
 	if (notificationParents.length === 0) {

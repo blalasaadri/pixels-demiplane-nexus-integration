@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.1.5
+// @version 0.1.6
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -183,11 +183,11 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 }
 const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/[a-zA-Z0-9-]+\/character-sheet\/[a-z0-9-]+/;
 // Listen for navigation events
-unsafeWindow.navigation.addEventListener("navigate", (event) => {
+window.navigation.addEventListener("navigate", (event) => {
     // If we have navigated to a character sheet, we may have to add a pixels menu button.
     if (characterSheetUrlRegex.test(event.destination.url)) {
         // Make sure that we don't already have a pixels menu button, before adding one.
-        const pixelsMenuButtons = unsafeWindow.document.getElementsByClassName("top-nav-nexus-pixels-menu-btn");
+        const pixelsMenuButtons = document.getElementsByClassName("top-nav-nexus-pixels-menu-btn");
         if (pixelsMenuButtons.length === 0) {
             (0, ui_pixels_menu_1.setupPixelsMenu)()
                 .then(() => {
@@ -214,7 +214,7 @@ exports.togglePixelsIntegrationEnabledForDieType = exports.setPixelsIntegrationE
 const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/(?<gameSystem>[a-zA-Z0-9-]+)\/character-sheet\/(?<characterId>[a-z0-9-]+)/;
 const characterSheetInfo = () => {
     var _a, _b;
-    const characterSheetUrl = unsafeWindow.location.href;
+    const characterSheetUrl = location.href;
     const characterSheetMatches = characterSheetUrl.match(characterSheetUrlRegex);
     const characterId = (_a = characterSheetMatches === null || characterSheetMatches === void 0 ? void 0 : characterSheetMatches.groups) === null || _a === void 0 ? void 0 : _a.characterId;
     const gameSystem = (_b = characterSheetMatches === null || characterSheetMatches === void 0 ? void 0 : characterSheetMatches.groups) === null || _b === void 0 ? void 0 : _b.gameSystem;
@@ -236,7 +236,7 @@ const isEnabledForCharacter = (characterId) => {
         characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
     }
     let enabledForCharacter = false;
-    const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName) || "{}";
+    const localStorageEntryString = localStorage.getItem(integrationEnabledStorageName) || "{}";
     const localStorageEntry = JSON.parse(localStorageEntryString);
     enabledForCharacter = localStorageEntry[characterSheetId] === true;
     return enabledForCharacter;
@@ -250,10 +250,10 @@ const setEnabledForCharacter = (enabled, characterId) => {
         characterSheetId = (0, exports.characterSheetInfo)().characterId || "";
     }
     const previouslyEnabledForCharacter = (0, exports.isEnabledForCharacter)(characterId);
-    const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationEnabledStorageName) || "{}";
+    const localStorageEntryString = localStorage.getItem(integrationEnabledStorageName) || "{}";
     const localStorageEntry = JSON.parse(localStorageEntryString);
     localStorageEntry[characterSheetId] = enabled;
-    unsafeWindow.localStorage.setItem(integrationEnabledStorageName, JSON.stringify(localStorageEntry));
+    localStorage.setItem(integrationEnabledStorageName, JSON.stringify(localStorageEntry));
     if (previouslyEnabledForCharacter !== enabled) {
         for (const listener of enabledForCharacterListeners) {
             listener.callback(enabled, characterSheetId);
@@ -276,15 +276,15 @@ exports.toggleEnabledForCharacter = toggleEnabledForCharacter;
 unsafeWindow.togglePixelsItegrationEnabled = exports.toggleEnabledForCharacter;
 const integrationDebugStorageName = "pixelsIntegrationDebug";
 const isDebugEnabled = () => {
-    const localStorageEntryString = unsafeWindow.localStorage.getItem(integrationDebugStorageName);
+    const localStorageEntryString = localStorage.getItem(integrationDebugStorageName);
     return localStorageEntryString === "true";
 };
 exports.isDebugEnabled = isDebugEnabled;
 // @ts-ignore
 unsafeWindow.togglePixelsItegrationDebug = () => {
-    const enabledString = unsafeWindow.localStorage.getItem(integrationDebugStorageName);
+    const enabledString = localStorage.getItem(integrationDebugStorageName);
     const integrationDebugPreviouslyEnabled = enabledString === "true";
-    unsafeWindow.localStorage.setItem(integrationDebugStorageName, `${!integrationDebugPreviouslyEnabled}`);
+    localStorage.setItem(integrationDebugStorageName, `${!integrationDebugPreviouslyEnabled}`);
     return !integrationDebugPreviouslyEnabled;
 };
 const integrationForDiceEnabledListeners = [];
@@ -294,7 +294,7 @@ const registerIntegrationForDiceEnabledListener = (listerner) => {
 exports.registerIntegrationForDiceEnabledListener = registerIntegrationForDiceEnabledListener;
 const integrationEnabledForDiceStorageName = "pixelsIntegrationEnabledForDice";
 const getIntegrationEnabledForDice = () => {
-    const enabledString = unsafeWindow.localStorage.getItem(integrationEnabledForDiceStorageName);
+    const enabledString = localStorage.getItem(integrationEnabledForDiceStorageName);
     let enabledObject;
     if (enabledString) {
         enabledObject = JSON.parse(enabledString);
@@ -311,13 +311,13 @@ const getIntegrationEnabledForDice = () => {
             d20: false,
             dF: false,
         };
-        unsafeWindow.localStorage.setItem(integrationEnabledForDiceStorageName, JSON.stringify(enabledObject));
+        localStorage.setItem(integrationEnabledForDiceStorageName, JSON.stringify(enabledObject));
     }
     return enabledObject;
 };
 exports.getIntegrationEnabledForDice = getIntegrationEnabledForDice;
 const updateIntegrationEnabledForDice = (updatedSettings) => {
-    const previouslyEnabledString = unsafeWindow.localStorage.getItem(integrationEnabledForDiceStorageName);
+    const previouslyEnabledString = localStorage.getItem(integrationEnabledForDiceStorageName);
     let previouslyEnabledObject;
     if (previouslyEnabledString) {
         previouslyEnabledObject = JSON.parse(previouslyEnabledString);
@@ -336,7 +336,7 @@ const updateIntegrationEnabledForDice = (updatedSettings) => {
         };
     }
     const newlyEnabledObject = Object.assign(Object.assign({}, previouslyEnabledObject), updatedSettings);
-    unsafeWindow.localStorage.setItem(integrationEnabledForDiceStorageName, JSON.stringify(newlyEnabledObject));
+    localStorage.setItem(integrationEnabledForDiceStorageName, JSON.stringify(newlyEnabledObject));
     for (const listener of integrationForDiceEnabledListeners) {
         const updatedForDieSizes = [];
         for (const key of Object.keys(updatedSettings)) {
@@ -1892,7 +1892,7 @@ const integration_utils_1 = __webpack_require__(530);
 const translations_1 = __webpack_require__(414);
 let rollsExpectedNotification;
 const getDiceSvg = (svgClass, width, height) => {
-    const diceRollerGrids = unsafeWindow.document.getElementsByClassName("dice-roller__dice-grid");
+    const diceRollerGrids = document.getElementsByClassName("dice-roller__dice-grid");
     if (diceRollerGrids.length === 0) {
         if ((0, integration_utils_1.isDebugEnabled)()) {
             console.log(`No dice roller grid found, so no svg with class ${svgClass} could be found.`);
@@ -1933,7 +1933,7 @@ const getRollDiceHistoryCssClass = () => {
 };
 const addRollsExpectedNotification = (rollRequest) => {
     const { gameSystem } = (0, integration_utils_1.characterSheetInfo)();
-    const notificationParents = unsafeWindow.document.getElementsByClassName(getRollDiceHistoryCssClass());
+    const notificationParents = document.getElementsByClassName(getRollDiceHistoryCssClass());
     if (notificationParents.length === 0) {
         if ((0, integration_utils_1.isDebugEnabled)()) {
             console.log("No dice roll history found to which a notification can be added.");
@@ -2086,7 +2086,7 @@ const addRollsExpectedNotification = (rollRequest) => {
                 const historyItemResult = rollsExpectedNotification.getElementsByClassName("history-item-result");
                 if (historyItemResult) {
                     const createDieSymbolFigure = (dieSize) => {
-                        const dieFigure = unsafeWindow.document.createElement("div");
+                        const dieFigure = document.createElement("div");
                         dieFigure.classList.add("MuiGrid-root", "MuiGrid-item", "history-item-result__die", `history-item-result__die--${dieSize}`, "history-item-result__die--7", "dice-history-result-dice");
                         dieFigure.setAttribute("style", `
 							box-sizing: border-box;
@@ -2094,7 +2094,7 @@ const addRollsExpectedNotification = (rollRequest) => {
 							-webkit-box-align: center;
 							align-items: center;
 						`);
-                        const figure = unsafeWindow.document.createElement("figure");
+                        const figure = document.createElement("figure");
                         figure.classList.add("history-item-result__image-container", "MuiBox-root");
                         figure.setAttribute("style", `
 							background: url(https://content.demiplane.com/nexus/daggerheart/character/dice/dh-${dieSize}-die.png);
@@ -2104,7 +2104,7 @@ const addRollsExpectedNotification = (rollRequest) => {
 						`);
                         dieFigure.appendChild(figure);
                         // This is left empty for the time being, though it could in future be filled with the actually rolled result as a kind of live update.
-                        const resultNumber = unsafeWindow.document.createElement("p");
+                        const resultNumber = document.createElement("p");
                         resultNumber.classList.add("MuiTypography-root", "MuiTypography-body1", "history-item-result__label", `expected-pixels-roll-${dieSize}`);
                         resultNumber.setAttribute("style", `
 							position: absolute;
@@ -2154,7 +2154,7 @@ const removeRollsExpectedNotification = (element = rollsExpectedNotification) =>
         }
         return;
     }
-    const notificationParents = unsafeWindow.document.getElementsByClassName(getRollDiceHistoryCssClass());
+    const notificationParents = document.getElementsByClassName(getRollDiceHistoryCssClass());
     if (notificationParents.length === 0) {
         if ((0, integration_utils_1.isDebugEnabled)()) {
             console.log("No dice roll history found from which a notification can be removed.");
@@ -2608,7 +2608,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
         let attemptCounter = 0;
         const interval = setInterval(() => {
             if (++attemptCounter < maxAttempts) {
-                const gameRulesButtons = unsafeWindow.document.getElementsByClassName("top-nav-nexus-game-rules-btn");
+                const gameRulesButtons = document.getElementsByClassName("top-nav-nexus-game-rules-btn");
                 if (gameRulesButtons.length > 0) {
                     clearInterval(interval);
                     resolve(gameRulesButtons[0]);
@@ -2679,57 +2679,57 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
         }
         else {
             // Create and open the tooltip
-            pixelsMenuTooltip = unsafeWindow.document.createElement("div");
+            pixelsMenuTooltip = document.createElement("div");
             pixelsMenuTooltip.setAttribute("role", "tooltip");
             pixelsMenuTooltip.classList.add("jss-pixels-menu", "nexus-pixels-dice-menu", "pixels-dice-menu", "css-0", "MuiPopperUnstyled-root");
             pixelsMenuTooltip.setAttribute("style", "position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate(0px, 62px);");
-            const menuContainer = unsafeWindow.document.createElement("div");
+            const menuContainer = document.createElement("div");
             menuContainer.classList.add("MuiBox-root", "css-0");
             menuContainer.setAttribute("style", "padding: 0px; margin: 0px;");
             pixelsMenuTooltip.appendChild(menuContainer);
-            const gridContainer = unsafeWindow.document.createElement("div");
+            const gridContainer = document.createElement("div");
             gridContainer.classList.add("MuiGrid-root", "MuiGrid-container", "jss-pixels-menu-grid-container");
             gridContainer.setAttribute("style", "flex-wrap: nowrap; padding-left: 24px;");
             menuContainer.appendChild(gridContainer);
             // Menu part for setting up Pixels dice
             (() => {
-                const pixelsSettingsContainer = unsafeWindow.document.createElement("div");
+                const pixelsSettingsContainer = document.createElement("div");
                 pixelsSettingsContainer.classList.add("MuiGrid-root", "MuiGrid-item", "MuiGrid-grid-xs-8", "MuiGrid-grid-sm-9", "MuiGrid-grid-lg-12", "css-pixels-settings");
                 gridContainer.appendChild(pixelsSettingsContainer);
-                const pixelsSettingsTitle = unsafeWindow.document.createElement("div");
+                const pixelsSettingsTitle = document.createElement("div");
                 pixelsSettingsTitle.classList.add("jss-pixels-in-menu-title", "pixels-dice-class-header", "MuiBox-root", "css-0");
                 pixelsSettingsContainer.appendChild(pixelsSettingsTitle);
-                const pixelsSettingsTitleParagraph = unsafeWindow.document.createElement("p");
+                const pixelsSettingsTitleParagraph = document.createElement("p");
                 pixelsSettingsTitleParagraph.classList.add("MuiTypography-root", "MuiTypography-body1", "jss-pixels-in-menu-title-p");
                 pixelsSettingsTitleParagraph.innerHTML = (0, translations_1.getTranslation)("ui.pixelsMenu.settings.title");
                 pixelsSettingsTitle.appendChild(pixelsSettingsTitleParagraph);
                 // Add a settings body
-                const pixelsSettingsBody = unsafeWindow.document.createElement("div");
+                const pixelsSettingsBody = document.createElement("div");
                 pixelsSettingsBody.classList.add("MuiGrid-root", "MuiGrid-container", "css-pixels-settings-body");
                 pixelsSettingsContainer.appendChild(pixelsSettingsBody);
-                const pixelsSettingsBodyColumn = unsafeWindow.document.createElement("div");
+                const pixelsSettingsBodyColumn = document.createElement("div");
                 pixelsSettingsBodyColumn.classList.add("MuiGrid-root", "MuiGrid-item", "MuiGrid-grid-md-4", "MuiGrid-grid-lg-3", "css-pixels-settings-body-column");
                 pixelsSettingsBody.appendChild(pixelsSettingsBodyColumn);
                 // Add the "Connect pixel die" button
-                const connectPixelDieButton = unsafeWindow.document.createElement("button");
+                const connectPixelDieButton = document.createElement("button");
                 connectPixelDieButton.classList.add("MuiButtonBase-root", "MuiButton-root", "MuiButton-text", "MuiButton-textPrimary", "MuiButton-sizeMedium", "MuiButton-textSizeMedium", "MuiButton-root", "MuiButton-text", "MuiButton-textPrimary", "MuiButton-sizeMedium", "MuiButton-textSizeMedium", "css-pixels-connect-button");
                 connectPixelDieButton.setAttribute("tabindex", "0"); // TODO Probably we do want a tab index here
                 connectPixelDieButton.setAttribute("type", "button");
                 connectPixelDieButton.setAttribute("aria-label", (0, translations_1.getTranslation)("ui.pixelsMenu.settings.connectDieButton.ariaLabel"));
                 connectPixelDieButton.setAttribute("onclick", "pixelsIntegrationConnectToPixelsDie()");
                 pixelsSettingsBodyColumn.appendChild(connectPixelDieButton);
-                const connectPixelDieButtonText = unsafeWindow.document.createElement("h2");
+                const connectPixelDieButtonText = document.createElement("h2");
                 connectPixelDieButtonText.classList.add("MuiTypography-root", "MuiTypography-h2", "MuiTypography-noWrap", "css-pixels-connect-button-text");
                 connectPixelDieButtonText.innerHTML = (0, translations_1.getTranslation)("ui.pixelsMenu.settings.connectDieButton.text");
                 connectPixelDieButton.appendChild(connectPixelDieButtonText);
-                const connectPixelDieButtonRipple = unsafeWindow.document.createElement("span");
+                const connectPixelDieButtonRipple = document.createElement("span");
                 connectPixelDieButtonRipple.classList.add("MuiTouchRipple-root", "css-pixels-connect-button-ripple");
                 connectPixelDieButton.appendChild(connectPixelDieButtonRipple);
                 // Add a "use pixels for this character" button
-                const usePixelsCheckboxHolder = unsafeWindow.document.createElement("div");
+                const usePixelsCheckboxHolder = document.createElement("div");
                 usePixelsCheckboxHolder.classList.add("MuiGrid-root", "MuiGrid-item", "button-component");
                 pixelsSettingsBodyColumn.appendChild(usePixelsCheckboxHolder);
-                const usePixelsCheckboxButton = unsafeWindow.document.createElement("button");
+                const usePixelsCheckboxButton = document.createElement("button");
                 usePixelsCheckboxButton.classList.add("MuiButtonBase-root", "MuiButton-root", "MuiButton-text", "MuiButton-textPrimary", "MuiButton-sizeMedium", "MuiButton-textSizeMedium", "MuiButton-root", "MuiButton-text", "MuiButton-textPrimary", "MuiButton-sizeMedium", "MuiButton-textSizeMedium", "button-component__button", "css-pixels-integration-enabled-checkbox");
                 if ((0, integration_utils_1.isEnabledForCharacter)()) {
                     usePixelsCheckboxButton.classList.add("active");
@@ -2750,10 +2750,10 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                 usePixelsCheckboxButton.setAttribute("onclick", "togglePixelsItegrationEnabled()");
                 usePixelsCheckboxButton.id = "toggle-pixel-integration-enabled";
                 usePixelsCheckboxHolder.appendChild(usePixelsCheckboxButton);
-                const usePixelsCheckboxButtonSpan = unsafeWindow.document.createElement("span");
+                const usePixelsCheckboxButtonSpan = document.createElement("span");
                 usePixelsCheckboxButtonSpan.classList.add("MuiTouchRipple-root", "css-pixels-integration-enabled-text");
                 usePixelsCheckboxButton.appendChild(usePixelsCheckboxButtonSpan);
-                const usePixelsCheckboxText = unsafeWindow.document.createElement("label");
+                const usePixelsCheckboxText = document.createElement("label");
                 usePixelsCheckboxText.setAttribute("for", "toggle-pixel-integration-enabled");
                 usePixelsCheckboxText.classList.add("css-pixels-integration-enabled-text");
                 usePixelsCheckboxText.innerHTML = (0, translations_1.getTranslation)("ui.pixelsMenu.settings.enableForCharacter.text");
@@ -2761,22 +2761,22 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
             })();
             // Menu part for showing the already connected Pixels dice
             (() => {
-                const pixelsDiceOverviewContainer = unsafeWindow.document.createElement("div");
+                const pixelsDiceOverviewContainer = document.createElement("div");
                 pixelsDiceOverviewContainer.classList.add("MuiGrid-root", "MuiGrid-item", "MuiGrid-grid-xs-6", "css-pixels-dice-overview");
                 gridContainer.appendChild(pixelsDiceOverviewContainer);
-                const pixelsOverviewTitle = unsafeWindow.document.createElement("div");
+                const pixelsOverviewTitle = document.createElement("div");
                 pixelsOverviewTitle.classList.add("jss-pixels-in-menu-title", "pixels-dice-class-header", "MuiBox-root", "css-0");
                 pixelsDiceOverviewContainer.appendChild(pixelsOverviewTitle);
-                const pixelsOverviewTitleParagraph = unsafeWindow.document.createElement("p");
+                const pixelsOverviewTitleParagraph = document.createElement("p");
                 pixelsOverviewTitleParagraph.classList.add("MuiTypography-root", "MuiTypography-body1", "jss-pixels-in-menu-title-p");
                 pixelsOverviewTitleParagraph.innerHTML = (0, translations_1.getTranslation)("ui.pixelsMenu.overview.title");
                 pixelsOverviewTitle.appendChild(pixelsOverviewTitleParagraph);
                 // Overview body and columns
-                const pixelsDiceOverviewBody = unsafeWindow.document.createElement("div");
+                const pixelsDiceOverviewBody = document.createElement("div");
                 pixelsDiceOverviewBody.classList.add("MuiGrid-root", "MuiGrid-container", "css-pixels-dice-overview-body");
                 pixelsDiceOverviewContainer.appendChild(pixelsDiceOverviewBody);
                 const createDieImageButton = (cssClass, imageDieType) => {
-                    const dieImageButton = unsafeWindow.document.createElement("button");
+                    const dieImageButton = document.createElement("button");
                     dieImageButton.setAttribute("onclick", `togglePixelsIntegrationForDieType("${imageDieType}")`);
                     const determineColorVariant = (integrationEnabledForDice) => {
                         let isEnabledForDieType = false;
@@ -2816,7 +2816,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                         }
                         return isEnabledForDieType ? "rainbow" : "white";
                     };
-                    const dieImage = unsafeWindow.document.createElement("img");
+                    const dieImage = document.createElement("img");
                     dieImage.classList.add(cssClass);
                     const integrationEnabledForDice = (0, integration_utils_1.getIntegrationEnabledForDice)();
                     const colorVariant = determineColorVariant(integrationEnabledForDice);
@@ -2854,7 +2854,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                 const createDieInfoTags = (connectedDiceOfType) => {
                     const infoTags = [];
                     for (const connectedDie of connectedDiceOfType) {
-                        const dieInfo = unsafeWindow.document.createElement("div");
+                        const dieInfo = document.createElement("div");
                         dieInfo.classList.add("css-pixels-dice-overview-die-info");
                         dieInfo.innerHTML = connectedDie.name;
                         dieInfo.setAttribute("pixelId", `${connectedDie.id}`);
@@ -2921,68 +2921,68 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
                     });
                 };
                 (() => {
-                    const pixelsDiceOverviewColumn1 = unsafeWindow.document.createElement("div");
+                    const pixelsDiceOverviewColumn1 = document.createElement("div");
                     pixelsDiceOverviewColumn1.classList.add("MuiGrid-root", "MuiGrid-item", "MuiGrid-grid-xs-4", "MuiGrid-grid-sm-4", "MuiGrid-grid-md-4", "MuiGrid-grid-lg-3", "css-pixels-dice-overview-column");
                     pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn1);
                     // d4
-                    const pixelsDiceOverviewD4Box = unsafeWindow.document.createElement("div");
+                    const pixelsDiceOverviewD4Box = document.createElement("div");
                     pixelsDiceOverviewD4Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d4-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn1.appendChild(pixelsDiceOverviewD4Box);
                     pixelsDiceOverviewD4Box.appendChild(createDieImageButton("dice-d4", "d4"));
                     addDiceInfoTags(pixelsDiceOverviewD4Box, ({ dieType }) => dieType === "d4", ({ d4 }) => d4);
                     // D00
-                    const pixelsDiceOverviewD00Box = unsafeWindow.document.createElement("div");
+                    const pixelsDiceOverviewD00Box = document.createElement("div");
                     pixelsDiceOverviewD00Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d00-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn1.appendChild(pixelsDiceOverviewD00Box);
                     pixelsDiceOverviewD00Box.appendChild(createDieImageButton("dice-fab-d10", "d00"));
                     addDiceInfoTags(pixelsDiceOverviewD00Box, ({ dieType }) => dieType === "d00", ({ d00 }) => d00);
                 })();
                 (() => {
-                    const pixelsDiceOverviewColumn2 = unsafeWindow.document.createElement("div");
+                    const pixelsDiceOverviewColumn2 = document.createElement("div");
                     pixelsDiceOverviewColumn2.classList.add("MuiGrid-root", "MuiGrid-item", "MuiGrid-grid-xs-4", "MuiGrid-grid-sm-4", "MuiGrid-grid-md-4", "MuiGrid-grid-lg-3", "css-pixels-dice-overview-column");
                     pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn2);
                     // d6
-                    const pixelsDiceOverviewD6Box = unsafeWindow.document.createElement("div");
+                    const pixelsDiceOverviewD6Box = document.createElement("div");
                     pixelsDiceOverviewD6Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d6-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn2.appendChild(pixelsDiceOverviewD6Box);
                     pixelsDiceOverviewD6Box.appendChild(createDieImageButton("dice-fab-d6", "d6"));
                     addDiceInfoTags(pixelsDiceOverviewD6Box, ({ dieType }) => dieType === "d6" || dieType === "d6pipped", ({ d6 }) => d6);
                     // d12
-                    const pixelsDiceOverviewD12Box = unsafeWindow.document.createElement("div");
+                    const pixelsDiceOverviewD12Box = document.createElement("div");
                     pixelsDiceOverviewD12Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d12-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn2.appendChild(pixelsDiceOverviewD12Box);
                     pixelsDiceOverviewD12Box.appendChild(createDieImageButton("dice-fab-d12", "d12"));
                     addDiceInfoTags(pixelsDiceOverviewD12Box, ({ dieType }) => dieType === "d12", ({ d12 }) => d12);
                 })();
                 (() => {
-                    const pixelsDiceOverviewColumn3 = unsafeWindow.document.createElement("div");
+                    const pixelsDiceOverviewColumn3 = document.createElement("div");
                     pixelsDiceOverviewColumn3.classList.add("MuiGrid-root", "MuiGrid-item", "MuiGrid-grid-xs-4", "MuiGrid-grid-sm-4", "MuiGrid-grid-md-4", "MuiGrid-grid-lg-3", "css-pixels-dice-overview-column");
                     pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn3);
                     // d8
-                    const pixelsDiceOverviewD8Box = unsafeWindow.document.createElement("div");
+                    const pixelsDiceOverviewD8Box = document.createElement("div");
                     pixelsDiceOverviewD8Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d8-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn3.appendChild(pixelsDiceOverviewD8Box);
                     pixelsDiceOverviewD8Box.appendChild(createDieImageButton("dice-fab-d8", "d8"));
                     addDiceInfoTags(pixelsDiceOverviewD8Box, ({ dieType }) => dieType === "d8", ({ d8 }) => d8);
                     // d20
-                    const pixelsDiceOverviewD20Box = unsafeWindow.document.createElement("div");
+                    const pixelsDiceOverviewD20Box = document.createElement("div");
                     pixelsDiceOverviewD20Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d20-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn3.appendChild(pixelsDiceOverviewD20Box);
                     pixelsDiceOverviewD20Box.appendChild(createDieImageButton("dice-fab-20", "d20"));
                     addDiceInfoTags(pixelsDiceOverviewD20Box, ({ dieType }) => dieType === "d20", ({ d20 }) => d20);
                 })();
                 (() => {
-                    const pixelsDiceOverviewColumn4 = unsafeWindow.document.createElement("div");
+                    const pixelsDiceOverviewColumn4 = document.createElement("div");
                     pixelsDiceOverviewColumn4.classList.add("MuiGrid-root", "MuiGrid-item", "MuiGrid-grid-xs-4", "MuiGrid-grid-sm-4", "MuiGrid-grid-md-4", "MuiGrid-grid-lg-3", "css-pixels-dice-overview-column");
                     pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn4);
                     // D10
-                    const pixelsDiceOverviewD10Box = unsafeWindow.document.createElement("div");
+                    const pixelsDiceOverviewD10Box = document.createElement("div");
                     pixelsDiceOverviewD10Box.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-d10-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn4.appendChild(pixelsDiceOverviewD10Box);
                     pixelsDiceOverviewD10Box.appendChild(createDieImageButton("dice-fab-d10", "d10"));
                     addDiceInfoTags(pixelsDiceOverviewD10Box, ({ dieType }) => dieType === "d10", ({ d10 }) => d10);
                     // dF
-                    const pixelsDiceOverviewDFBox = unsafeWindow.document.createElement("div");
+                    const pixelsDiceOverviewDFBox = document.createElement("div");
                     pixelsDiceOverviewDFBox.classList.add("css-pixels-dice-overview-dice-box", "pixels-dice-overview-dF-box", "MuiBox-root", "css-0");
                     pixelsDiceOverviewColumn4.appendChild(pixelsDiceOverviewDFBox);
                     pixelsDiceOverviewDFBox.appendChild(createDieImageButton("dice-fab-d6", "dF"));
@@ -2999,14 +2999,12 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
     // Insert our new element as the last menu item
     (_a = gameRulesButton.parentElement) === null || _a === void 0 ? void 0 : _a.insertBefore(pixelsMenuButton, (_b = gameRulesButton.parentElement) === null || _b === void 0 ? void 0 : _b.lastChild);
     // Insert the style element for styling the pixels menu
-    const pixelsMenuStyleTag = unsafeWindow.document.createElement("style");
+    const pixelsMenuStyleTag = document.createElement("style");
     pixelsMenuStyleTag.innerHTML = pixelsTooltipCss;
-    unsafeWindow.document
-        .getElementsByTagName("head")[0]
-        .appendChild(pixelsMenuStyleTag);
+    document.getElementsByTagName("head")[0].appendChild(pixelsMenuStyleTag);
     // Add a listener to close the menu if anything is clicked outside of the menu
-    unsafeWindow.document.addEventListener("click", (e) => {
-        const pixelMenu = unsafeWindow.document.getElementsByClassName("nexus-pixels-dice-menu");
+    document.addEventListener("click", (e) => {
+        const pixelMenu = document.getElementsByClassName("nexus-pixels-dice-menu");
         // If the menu isn't visible, it won't proceed from here on.
         if (pixelMenu.length > 0) {
             // Check whether we're clicking directly in the pixels menu or on a child element of the pixels menu

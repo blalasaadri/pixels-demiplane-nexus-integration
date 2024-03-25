@@ -6,7 +6,7 @@ export const characterSheetInfo = (): {
 	characterId?: string;
 	gameSystem?: string;
 } => {
-	const characterSheetUrl = unsafeWindow.location.href;
+	const characterSheetUrl = location.href;
 	const characterSheetMatches = characterSheetUrl.match(characterSheetUrlRegex);
 	const characterId = characterSheetMatches?.groups?.characterId;
 	const gameSystem = characterSheetMatches?.groups?.gameSystem;
@@ -43,7 +43,7 @@ export const isEnabledForCharacter = (characterId?: string): boolean => {
 	}
 	let enabledForCharacter = false;
 	const localStorageEntryString =
-		unsafeWindow.localStorage.getItem(integrationEnabledStorageName) || "{}";
+		localStorage.getItem(integrationEnabledStorageName) || "{}";
 	const localStorageEntry: EnabledByCharacter = JSON.parse(
 		localStorageEntryString,
 	);
@@ -64,12 +64,12 @@ export const setEnabledForCharacter = (
 	}
 	const previouslyEnabledForCharacter = isEnabledForCharacter(characterId);
 	const localStorageEntryString =
-		unsafeWindow.localStorage.getItem(integrationEnabledStorageName) || "{}";
+		localStorage.getItem(integrationEnabledStorageName) || "{}";
 	const localStorageEntry: EnabledByCharacter = JSON.parse(
 		localStorageEntryString,
 	);
 	localStorageEntry[characterSheetId] = enabled;
-	unsafeWindow.localStorage.setItem(
+	localStorage.setItem(
 		integrationEnabledStorageName,
 		JSON.stringify(localStorageEntry),
 	);
@@ -96,7 +96,7 @@ unsafeWindow.togglePixelsItegrationEnabled = toggleEnabledForCharacter;
 
 const integrationDebugStorageName = "pixelsIntegrationDebug";
 export const isDebugEnabled = (): boolean => {
-	const localStorageEntryString = unsafeWindow.localStorage.getItem(
+	const localStorageEntryString = localStorage.getItem(
 		integrationDebugStorageName,
 	);
 	return localStorageEntryString === "true";
@@ -104,12 +104,10 @@ export const isDebugEnabled = (): boolean => {
 
 // @ts-ignore
 unsafeWindow.togglePixelsItegrationDebug = () => {
-	const enabledString = unsafeWindow.localStorage.getItem(
-		integrationDebugStorageName,
-	);
+	const enabledString = localStorage.getItem(integrationDebugStorageName);
 	const integrationDebugPreviouslyEnabled = enabledString === "true";
 
-	unsafeWindow.localStorage.setItem(
+	localStorage.setItem(
 		integrationDebugStorageName,
 		`${!integrationDebugPreviouslyEnabled}`,
 	);
@@ -145,7 +143,7 @@ export const registerIntegrationForDiceEnabledListener = (
 
 const integrationEnabledForDiceStorageName = "pixelsIntegrationEnabledForDice";
 export const getIntegrationEnabledForDice = (): IntegrationEnabledForDice => {
-	const enabledString = unsafeWindow.localStorage.getItem(
+	const enabledString = localStorage.getItem(
 		integrationEnabledForDiceStorageName,
 	);
 	let enabledObject: IntegrationEnabledForDice;
@@ -163,7 +161,7 @@ export const getIntegrationEnabledForDice = (): IntegrationEnabledForDice => {
 			d20: false,
 			dF: false,
 		};
-		unsafeWindow.localStorage.setItem(
+		localStorage.setItem(
 			integrationEnabledForDiceStorageName,
 			JSON.stringify(enabledObject),
 		);
@@ -174,7 +172,7 @@ export const getIntegrationEnabledForDice = (): IntegrationEnabledForDice => {
 export const updateIntegrationEnabledForDice = (
 	updatedSettings: Partial<IntegrationEnabledForDice>,
 ): IntegrationEnabledForDice => {
-	const previouslyEnabledString = unsafeWindow.localStorage.getItem(
+	const previouslyEnabledString = localStorage.getItem(
 		integrationEnabledForDiceStorageName,
 	);
 	let previouslyEnabledObject: IntegrationEnabledForDice;
@@ -197,7 +195,7 @@ export const updateIntegrationEnabledForDice = (
 		...previouslyEnabledObject,
 		...updatedSettings,
 	};
-	unsafeWindow.localStorage.setItem(
+	localStorage.setItem(
 		integrationEnabledForDiceStorageName,
 		JSON.stringify(newlyEnabledObject),
 	);

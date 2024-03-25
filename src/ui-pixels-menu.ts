@@ -437,7 +437,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 		let attemptCounter = 0;
 		const interval = setInterval(() => {
 			if (++attemptCounter < maxAttempts) {
-				const gameRulesButtons = unsafeWindow.document.getElementsByClassName(
+				const gameRulesButtons = document.getElementsByClassName(
 					"top-nav-nexus-game-rules-btn",
 				);
 				if (gameRulesButtons.length > 0) {
@@ -520,7 +520,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 			}
 		} else {
 			// Create and open the tooltip
-			pixelsMenuTooltip = unsafeWindow.document.createElement("div");
+			pixelsMenuTooltip = document.createElement("div");
 			pixelsMenuTooltip.setAttribute("role", "tooltip");
 			pixelsMenuTooltip.classList.add(
 				"jss-pixels-menu",
@@ -534,12 +534,12 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				"position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate(0px, 62px);",
 			);
 
-			const menuContainer = unsafeWindow.document.createElement("div");
+			const menuContainer = document.createElement("div");
 			menuContainer.classList.add("MuiBox-root", "css-0");
 			menuContainer.setAttribute("style", "padding: 0px; margin: 0px;");
 			pixelsMenuTooltip.appendChild(menuContainer);
 
-			const gridContainer = unsafeWindow.document.createElement("div");
+			const gridContainer = document.createElement("div");
 			gridContainer.classList.add(
 				"MuiGrid-root",
 				"MuiGrid-container",
@@ -553,8 +553,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 
 			// Menu part for setting up Pixels dice
 			(() => {
-				const pixelsSettingsContainer =
-					unsafeWindow.document.createElement("div");
+				const pixelsSettingsContainer = document.createElement("div");
 				pixelsSettingsContainer.classList.add(
 					"MuiGrid-root",
 					"MuiGrid-item",
@@ -565,7 +564,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				);
 				gridContainer.appendChild(pixelsSettingsContainer);
 
-				const pixelsSettingsTitle = unsafeWindow.document.createElement("div");
+				const pixelsSettingsTitle = document.createElement("div");
 				pixelsSettingsTitle.classList.add(
 					"jss-pixels-in-menu-title",
 					"pixels-dice-class-header",
@@ -574,8 +573,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				);
 				pixelsSettingsContainer.appendChild(pixelsSettingsTitle);
 
-				const pixelsSettingsTitleParagraph =
-					unsafeWindow.document.createElement("p");
+				const pixelsSettingsTitleParagraph = document.createElement("p");
 				pixelsSettingsTitleParagraph.classList.add(
 					"MuiTypography-root",
 					"MuiTypography-body1",
@@ -587,7 +585,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				pixelsSettingsTitle.appendChild(pixelsSettingsTitleParagraph);
 
 				// Add a settings body
-				const pixelsSettingsBody = unsafeWindow.document.createElement("div");
+				const pixelsSettingsBody = document.createElement("div");
 				pixelsSettingsBody.classList.add(
 					"MuiGrid-root",
 					"MuiGrid-container",
@@ -595,8 +593,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				);
 				pixelsSettingsContainer.appendChild(pixelsSettingsBody);
 
-				const pixelsSettingsBodyColumn =
-					unsafeWindow.document.createElement("div");
+				const pixelsSettingsBodyColumn = document.createElement("div");
 				pixelsSettingsBodyColumn.classList.add(
 					"MuiGrid-root",
 					"MuiGrid-item",
@@ -607,8 +604,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				pixelsSettingsBody.appendChild(pixelsSettingsBodyColumn);
 
 				// Add the "Connect pixel die" button
-				const connectPixelDieButton =
-					unsafeWindow.document.createElement("button");
+				const connectPixelDieButton = document.createElement("button");
 				connectPixelDieButton.classList.add(
 					"MuiButtonBase-root",
 					"MuiButton-root",
@@ -635,8 +631,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				);
 				pixelsSettingsBodyColumn.appendChild(connectPixelDieButton);
 
-				const connectPixelDieButtonText =
-					unsafeWindow.document.createElement("h2");
+				const connectPixelDieButtonText = document.createElement("h2");
 				connectPixelDieButtonText.classList.add(
 					"MuiTypography-root",
 					"MuiTypography-h2",
@@ -648,8 +643,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				);
 				connectPixelDieButton.appendChild(connectPixelDieButtonText);
 
-				const connectPixelDieButtonRipple =
-					unsafeWindow.document.createElement("span");
+				const connectPixelDieButtonRipple = document.createElement("span");
 				connectPixelDieButtonRipple.classList.add(
 					"MuiTouchRipple-root",
 					"css-pixels-connect-button-ripple",
@@ -657,8 +651,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				connectPixelDieButton.appendChild(connectPixelDieButtonRipple);
 
 				// Add a "use pixels for this character" button
-				const usePixelsCheckboxHolder =
-					unsafeWindow.document.createElement("div");
+				const usePixelsCheckboxHolder = document.createElement("div");
 				usePixelsCheckboxHolder.classList.add(
 					"MuiGrid-root",
 					"MuiGrid-item",
@@ -666,8 +659,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				);
 				pixelsSettingsBodyColumn.appendChild(usePixelsCheckboxHolder);
 
-				const usePixelsCheckboxButton =
-					unsafeWindow.document.createElement("button");
+				const usePixelsCheckboxButton = document.createElement("button");
 				usePixelsCheckboxButton.classList.add(
 					"MuiButtonBase-root",
 					"MuiButton-root",
@@ -705,16 +697,14 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				usePixelsCheckboxButton.id = "toggle-pixel-integration-enabled";
 				usePixelsCheckboxHolder.appendChild(usePixelsCheckboxButton);
 
-				const usePixelsCheckboxButtonSpan =
-					unsafeWindow.document.createElement("span");
+				const usePixelsCheckboxButtonSpan = document.createElement("span");
 				usePixelsCheckboxButtonSpan.classList.add(
 					"MuiTouchRipple-root",
 					"css-pixels-integration-enabled-text",
 				);
 				usePixelsCheckboxButton.appendChild(usePixelsCheckboxButtonSpan);
 
-				const usePixelsCheckboxText =
-					unsafeWindow.document.createElement("label");
+				const usePixelsCheckboxText = document.createElement("label");
 				usePixelsCheckboxText.setAttribute(
 					"for",
 					"toggle-pixel-integration-enabled",
@@ -730,8 +720,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 
 			// Menu part for showing the already connected Pixels dice
 			(() => {
-				const pixelsDiceOverviewContainer =
-					unsafeWindow.document.createElement("div");
+				const pixelsDiceOverviewContainer = document.createElement("div");
 				pixelsDiceOverviewContainer.classList.add(
 					"MuiGrid-root",
 					"MuiGrid-item",
@@ -740,7 +729,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				);
 				gridContainer.appendChild(pixelsDiceOverviewContainer);
 
-				const pixelsOverviewTitle = unsafeWindow.document.createElement("div");
+				const pixelsOverviewTitle = document.createElement("div");
 				pixelsOverviewTitle.classList.add(
 					"jss-pixels-in-menu-title",
 					"pixels-dice-class-header",
@@ -749,8 +738,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				);
 				pixelsDiceOverviewContainer.appendChild(pixelsOverviewTitle);
 
-				const pixelsOverviewTitleParagraph =
-					unsafeWindow.document.createElement("p");
+				const pixelsOverviewTitleParagraph = document.createElement("p");
 				pixelsOverviewTitleParagraph.classList.add(
 					"MuiTypography-root",
 					"MuiTypography-body1",
@@ -762,8 +750,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				pixelsOverviewTitle.appendChild(pixelsOverviewTitleParagraph);
 
 				// Overview body and columns
-				const pixelsDiceOverviewBody =
-					unsafeWindow.document.createElement("div");
+				const pixelsDiceOverviewBody = document.createElement("div");
 				pixelsDiceOverviewBody.classList.add(
 					"MuiGrid-root",
 					"MuiGrid-container",
@@ -783,7 +770,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 						| "d20"
 						| "dF",
 				) => {
-					const dieImageButton = unsafeWindow.document.createElement("button");
+					const dieImageButton = document.createElement("button");
 					dieImageButton.setAttribute(
 						"onclick",
 						`togglePixelsIntegrationForDieType("${imageDieType}")`,
@@ -829,7 +816,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 						}
 						return isEnabledForDieType ? "rainbow" : "white";
 					};
-					const dieImage = unsafeWindow.document.createElement("img");
+					const dieImage = document.createElement("img");
 					dieImage.classList.add(cssClass);
 					const integrationEnabledForDice = getIntegrationEnabledForDice();
 					const colorVariant = determineColorVariant(integrationEnabledForDice);
@@ -880,7 +867,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				): { die: ConnectedDie; tag: HTMLDivElement }[] => {
 					const infoTags: { die: ConnectedDie; tag: HTMLDivElement }[] = [];
 					for (const connectedDie of connectedDiceOfType) {
-						const dieInfo = unsafeWindow.document.createElement("div");
+						const dieInfo = document.createElement("div");
 						dieInfo.classList.add("css-pixels-dice-overview-die-info");
 						dieInfo.innerHTML = connectedDie.name;
 						dieInfo.setAttribute("pixelId", `${connectedDie.id}`);
@@ -966,8 +953,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				};
 
 				(() => {
-					const pixelsDiceOverviewColumn1 =
-						unsafeWindow.document.createElement("div");
+					const pixelsDiceOverviewColumn1 = document.createElement("div");
 					pixelsDiceOverviewColumn1.classList.add(
 						"MuiGrid-root",
 						"MuiGrid-item",
@@ -980,8 +966,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn1);
 
 					// d4
-					const pixelsDiceOverviewD4Box =
-						unsafeWindow.document.createElement("div");
+					const pixelsDiceOverviewD4Box = document.createElement("div");
 					pixelsDiceOverviewD4Box.classList.add(
 						"css-pixels-dice-overview-dice-box",
 						"pixels-dice-overview-d4-box",
@@ -999,8 +984,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 
 					// D00
-					const pixelsDiceOverviewD00Box =
-						unsafeWindow.document.createElement("div");
+					const pixelsDiceOverviewD00Box = document.createElement("div");
 					pixelsDiceOverviewD00Box.classList.add(
 						"css-pixels-dice-overview-dice-box",
 						"pixels-dice-overview-d00-box",
@@ -1019,8 +1003,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				})();
 
 				(() => {
-					const pixelsDiceOverviewColumn2 =
-						unsafeWindow.document.createElement("div");
+					const pixelsDiceOverviewColumn2 = document.createElement("div");
 					pixelsDiceOverviewColumn2.classList.add(
 						"MuiGrid-root",
 						"MuiGrid-item",
@@ -1033,8 +1016,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn2);
 
 					// d6
-					const pixelsDiceOverviewD6Box =
-						unsafeWindow.document.createElement("div");
+					const pixelsDiceOverviewD6Box = document.createElement("div");
 					pixelsDiceOverviewD6Box.classList.add(
 						"css-pixels-dice-overview-dice-box",
 						"pixels-dice-overview-d6-box",
@@ -1052,8 +1034,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 
 					// d12
-					const pixelsDiceOverviewD12Box =
-						unsafeWindow.document.createElement("div");
+					const pixelsDiceOverviewD12Box = document.createElement("div");
 					pixelsDiceOverviewD12Box.classList.add(
 						"css-pixels-dice-overview-dice-box",
 						"pixels-dice-overview-d12-box",
@@ -1072,8 +1053,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				})();
 
 				(() => {
-					const pixelsDiceOverviewColumn3 =
-						unsafeWindow.document.createElement("div");
+					const pixelsDiceOverviewColumn3 = document.createElement("div");
 					pixelsDiceOverviewColumn3.classList.add(
 						"MuiGrid-root",
 						"MuiGrid-item",
@@ -1086,8 +1066,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn3);
 
 					// d8
-					const pixelsDiceOverviewD8Box =
-						unsafeWindow.document.createElement("div");
+					const pixelsDiceOverviewD8Box = document.createElement("div");
 					pixelsDiceOverviewD8Box.classList.add(
 						"css-pixels-dice-overview-dice-box",
 						"pixels-dice-overview-d8-box",
@@ -1105,8 +1084,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 
 					// d20
-					const pixelsDiceOverviewD20Box =
-						unsafeWindow.document.createElement("div");
+					const pixelsDiceOverviewD20Box = document.createElement("div");
 					pixelsDiceOverviewD20Box.classList.add(
 						"css-pixels-dice-overview-dice-box",
 						"pixels-dice-overview-d20-box",
@@ -1125,8 +1103,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 				})();
 
 				(() => {
-					const pixelsDiceOverviewColumn4 =
-						unsafeWindow.document.createElement("div");
+					const pixelsDiceOverviewColumn4 = document.createElement("div");
 					pixelsDiceOverviewColumn4.classList.add(
 						"MuiGrid-root",
 						"MuiGrid-item",
@@ -1139,8 +1116,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					pixelsDiceOverviewBody.appendChild(pixelsDiceOverviewColumn4);
 
 					// D10
-					const pixelsDiceOverviewD10Box =
-						unsafeWindow.document.createElement("div");
+					const pixelsDiceOverviewD10Box = document.createElement("div");
 					pixelsDiceOverviewD10Box.classList.add(
 						"css-pixels-dice-overview-dice-box",
 						"pixels-dice-overview-d10-box",
@@ -1158,8 +1134,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
 					);
 
 					// dF
-					const pixelsDiceOverviewDFBox =
-						unsafeWindow.document.createElement("div");
+					const pixelsDiceOverviewDFBox = document.createElement("div");
 					pixelsDiceOverviewDFBox.classList.add(
 						"css-pixels-dice-overview-dice-box",
 						"pixels-dice-overview-dF-box",
@@ -1196,17 +1171,13 @@ export const setupPixelsMenu = async (): Promise<void> => {
 	);
 
 	// Insert the style element for styling the pixels menu
-	const pixelsMenuStyleTag = unsafeWindow.document.createElement("style");
+	const pixelsMenuStyleTag = document.createElement("style");
 	pixelsMenuStyleTag.innerHTML = pixelsTooltipCss;
-	unsafeWindow.document
-		.getElementsByTagName("head")[0]
-		.appendChild(pixelsMenuStyleTag);
+	document.getElementsByTagName("head")[0].appendChild(pixelsMenuStyleTag);
 
 	// Add a listener to close the menu if anything is clicked outside of the menu
-	unsafeWindow.document.addEventListener("click", (e: MouseEvent) => {
-		const pixelMenu = unsafeWindow.document.getElementsByClassName(
-			"nexus-pixels-dice-menu",
-		);
+	document.addEventListener("click", (e: MouseEvent) => {
+		const pixelMenu = document.getElementsByClassName("nexus-pixels-dice-menu");
 		// If the menu isn't visible, it won't proceed from here on.
 		if (pixelMenu.length > 0) {
 			// Check whether we're clicking directly in the pixels menu or on a child element of the pixels menu

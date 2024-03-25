@@ -179,11 +179,11 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 const characterSheetUrlRegex =
 	/https:\/\/app.demiplane.com\/nexus\/[a-zA-Z0-9-]+\/character-sheet\/[a-z0-9-]+/;
 // Listen for navigation events
-unsafeWindow.navigation.addEventListener("navigate", (event) => {
+window.navigation.addEventListener("navigate", (event) => {
 	// If we have navigated to a character sheet, we may have to add a pixels menu button.
 	if (characterSheetUrlRegex.test(event.destination.url)) {
 		// Make sure that we don't already have a pixels menu button, before adding one.
-		const pixelsMenuButtons = unsafeWindow.document.getElementsByClassName(
+		const pixelsMenuButtons = document.getElementsByClassName(
 			"top-nav-nexus-pixels-menu-btn",
 		);
 		if (pixelsMenuButtons.length === 0) {
