@@ -2114,6 +2114,18 @@ const addRollsExpectedNotification = (rollRequest) => {
                     return undefined;
                 }
                 rollsExpectedNotification = notificationTemplate.cloneNode(true);
+                // TODO This is too bright, it's difficult to read the content.
+                // rollsExpectedNotification.setAttribute(
+                // 	"style",
+                // 	`
+                // 	background: linear-gradient(180deg, rgba(62, 172, 1940.8) 0%, rgba(121, 62, 194, 0.8) 25%, rgba(245, 58, 37, 0.8) 50%, rgba(245, 241, 27, 0.8) 75%, rgba(124, 207, 128, 0.8));
+                // 	padding: 12px !important;
+                // 	position: relative;
+                // 	border-radius: 8px;
+                // 	border: 1px solid #888888;
+                // 	text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+                // `,
+                // );
                 const titleRow = rollsExpectedNotification.firstChild;
                 // Change the title of the new element
                 const titleElement = titleRow.firstChild;
@@ -2180,8 +2192,9 @@ const addRollsExpectedNotification = (rollRequest) => {
                             const diceRollDetails = diceIndicator.firstChild;
                             diceRollDetails.removeChild(diceRollDetails.firstChild);
                             diceRollDetails.setAttribute("data-cy", `dice-roll-details-${key.substring(1)}-icon`);
-                            ((_a = diceRollDetails.lastChild) === null || _a === void 0 ? void 0 : _a.lastChild).innerHTML =
-                                `${getter.value} x`;
+                            const counter = (_a = diceRollDetails.lastChild) === null || _a === void 0 ? void 0 : _a.lastChild;
+                            counter.innerHTML = `${getter.value} x`;
+                            counter.setAttribute("style", "font-size: 20px;");
                             diceRollDetails.append(svg);
                             newDiceRollIndicators.push(diceIndicator);
                         }
