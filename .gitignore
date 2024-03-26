@@ -107,3 +107,4 @@ dist
 /userscripts/*.js
 !/userscripts/index.prod.user.js
 tmp/
+*.adoc.bak

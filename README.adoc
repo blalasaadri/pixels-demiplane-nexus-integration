@@ -7,7 +7,7 @@ This project aims to integrate the Pixels electronic dice (https://www.gamewithp
 
 Demiplane offers character sheets for a range of TTRPG system, including the option to roll simulated dice on those character sheets.
 
-Pixels electronic dice are physical dice that can (among other things) establish a Bluetoot LE connection to an application running on a computer, tablet, or smartphone.
+Pixels electronic dice are physical dice that can (among other things) establish a Bluetooth LE connection to an application running on a computer, tablet, or smartphone.
 When that connection is established, they can send roll results to whatever application they are connected to.
 
 By combining the two projects, we can have digital character sheets for a number of TTRPG systems, roll physical dice for whatever roll is happening and the character sheet will handle any calculations required for the roll.
@@ -30,7 +30,7 @@ The integration will **not work on Firefox or Safari**, since neither of those s
 
 This isn't likely to change any time soon.
 The specification draft is handled by the https://www.w3.org/community/web-bluetooth/[W3C Web Bluetooth Community Group] and a number of concerns have been raised about it over the years.
-Specifically, Mozilla has decided not to implement Web Bluetooth in Firefox (see a discussion about the issue https://bugzilla.mozilla.org/show_bug.cgi?id=674737[here], a statement about their position https://mozilla.github.io/standards-positions/#web-bluetooth[here]) and Apple has decided against implementing in Webkit (which powers Safari) for security reasons (see a discussion about it https://bugs.webkit.org/show_bug.cgi?id=101034[here] their stance on https://webkit.org/tracking-prevention/#anti-fingerprinting[Anti-Fingerprinting]).
+Specifically, Mozilla has decided not to implement Web Bluetooth in Firefox (see a discussion about the issue https://bugzilla.mozilla.org/show_bug.cgi?id=674737[here], a statement about their position https://mozilla.github.io/standards-positions/#web-bluetooth[here]) and Apple has decided against implementing in WebKit (which powers Safari) for security reasons (see a discussion about it https://bugs.webkit.org/show_bug.cgi?id=101034[here] their stance on https://webkit.org/tracking-prevention/#anti-fingerprinting[Anti-Fingerprinting]).
 ====
 
 [#supported-oses]
@@ -111,7 +111,7 @@ To allow for this, go to link:chrome://flags/#enable-web-bluetooth-new-permissio
 [#usage]
 === Using the integration on Demiplane Nexus
 
-Once <<setup-bluetooth, bluetooth is set up>> and <<setup, the integration is installed>>, open the character sheet you want to use the integation with on Demiplane Nexus.
+Once <<setup-bluetooth, Bluetooth is set up>> and <<setup, the integration is installed>>, open the character sheet you want to use the integration with on Demiplane Nexus.
 
 In many cases, a menu entry called _Pixels Dice icon:caret-down[]_ should appear at in the top bar.
 
@@ -124,7 +124,7 @@ image:pixels-button-avatar.png[]
 If this entry does not appear, you may have to reload the character sheet.
 
 [#pixels-menu]
-Once the button, click on it to open what will henceforth be refered to as the _Pixels Menu_.
+Once the button, click on it to open what will henceforth be referred to as the _Pixels Menu_.
 
 .The Pixels Menu before anything has been set up
 image:pixels-menu-new-pathfinder.png[]
@@ -251,9 +251,9 @@ This does not change the behaviour of the integration.
 
 [horizontal]
 `pixelsIntegration.isDebugModeEnabled()`:: Will return `true` if debug mode is enabled and `false` otherwise.
-`pixelsIntegration.enableDebugMode()`:: Will switch the integrations debug on and then return `true`.
-`pixelsIntegration.disableDebugMode()`:: Will switch the integrations debug off and then return `false`.
-`pixelsIntegration.toggleDebugMode()`:: Will switch the integrations debug mode on or off. Will return `true` if the debugging mode has been switched on, and `false` if it has been switched off.
+`pixelsIntegration.enableDebugMode()`:: Will switch the integration's debug on and then return `true`.
+`pixelsIntegration.disableDebugMode()`:: Will switch the integration's debug off and then return `false`.
+`pixelsIntegration.toggleDebugMode()`:: Will switch the integration's debug mode on or off. Will return `true` if the debugging mode has been switched on, and `false` if it has been switched off.
 
 === Connecting a Pixels die
 
