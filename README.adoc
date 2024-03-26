@@ -78,6 +78,7 @@ This means that you need a browser extension such as https://chromewebstore.goog
 The integration has built to be usable for any game system offered by Demiplane.
 It has been successfully tested with the following systems:
 
+- Alien RPG
 - Avatar Legends
 - Daggerheart (including limited critical roll handling)
 - Pathfinder 2E (including limited critical roll handling)

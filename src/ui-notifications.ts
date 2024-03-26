@@ -52,10 +52,12 @@ const getRollDiceHistoryCssClass = (): string => {
 	switch (gameSystem) {
 		case "avatarlegends":
 			return "dice-roll-history";
-		case "daggerheart":
-			return "dice-history-main-container";
 		case "pathfinder2e":
 			return "dice-roll-history";
+		case "alienrpg":
+			return "dice-history-main-container";
+		case "daggerheart":
+			return "dice-history-main-container";
 		default:
 			return "dice-roll-history";
 	}
@@ -78,6 +80,16 @@ export const addRollsExpectedNotification = (
 		}
 		return undefined;
 	}
+
+	const removeElementFromAncestor = (
+		ancestorElement: Element,
+		className: string,
+	): void => {
+		const element = ancestorElement.getElementsByClassName(className);
+		if (element.length > 0) {
+			element[0].parentElement?.removeChild(element[0]);
+		}
+	};
 
 	switch (gameSystem) {
 		case "avatarlegends":
@@ -277,22 +289,14 @@ export const addRollsExpectedNotification = (
 				}
 
 				// Remove the reroll and result elements
-				const diceRollerButton =
-					diceHistoryExpandedContainer[0].getElementsByClassName(
-						"dice-roller-button",
-					);
-				if (diceRollerButton.length > 0) {
-					diceRollerButton[0].parentElement?.removeChild(diceRollerButton[0]);
-				}
-				const totalResultContainer =
-					diceHistoryExpandedContainer[0].getElementsByClassName(
-						"dice-history-item-total-result-container",
-					);
-				if (totalResultContainer.length > 0) {
-					totalResultContainer[0].parentElement?.removeChild(
-						totalResultContainer[0],
-					);
-				}
+				removeElementFromAncestor(
+					diceHistoryExpandedContainer[0],
+					"dice-roller-button",
+				);
+				removeElementFromAncestor(
+					diceHistoryExpandedContainer[0],
+					"dice-history-item-total-result-container",
+				);
 
 				// Display the dice to be rolled
 				const historyItemResult =
@@ -399,6 +403,319 @@ export const addRollsExpectedNotification = (
 						staticModifier[0].innerHTML = "";
 					}
 				}
+			})();
+
+			// Show the notification
+			if (rollsExpectedNotification) {
+				notificationParents[0].appendChild(rollsExpectedNotification);
+			}
+			break;
+		}
+		case "alienrpg": {
+			(() => {
+				const notificationTemplate = notificationParents[0].lastChild;
+				if (!notificationTemplate) {
+					if (isDebugEnabled()) {
+						console.log(
+							"The dice roll history is empty, no element can be cloned.",
+							notificationParents[0],
+						);
+					}
+					return undefined;
+				}
+
+				rollsExpectedNotification = notificationTemplate.cloneNode(
+					true,
+				) as Element;
+
+				rollsExpectedNotification.classList.remove(
+					"dice-roller-history--success",
+					"dice-roller-history--success-with-panic",
+				);
+				rollsExpectedNotification.classList.add(
+					"dice-roller-history--awaiting-pixels-roll",
+				);
+				rollsExpectedNotification.setAttribute(
+					"style",
+					`
+					background: linear-gradient(180deg, rgb(62, 172, 194) 0%, rgb(121, 62, 194) 25%, rgb(245, 58, 37) 50%, rgb(245, 241, 27) 75%, rgb(124, 207, 128));
+					padding: 12px !important;
+					position: relative;
+					border-radius: 8px;
+					border: 1px solid #888888;
+					text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+				`,
+				);
+
+				// Now find and modify the inner container
+				const diceHistoryExpandedContainer =
+					rollsExpectedNotification.getElementsByClassName(
+						"history-item-container dice-history-expanded-container",
+					);
+				if (diceHistoryExpandedContainer.length === 0) {
+					if (isDebugEnabled()) {
+						console.log(
+							"There is no dice roll history expanced container, so the element cannot be edited.",
+							notificationParents[0],
+						);
+					}
+					return undefined;
+				}
+
+				const titleRow = diceHistoryExpandedContainer[0].getElementsByClassName(
+					"history-item-container dice-history-expanded-top-container",
+				);
+				if (titleRow.length === 0) {
+					if (isDebugEnabled()) {
+						console.log(
+							"There is no history item top container, so the element cannot be edited.",
+							diceHistoryExpandedContainer[0],
+						);
+					}
+					return undefined;
+				}
+
+				// Change the title of the new element
+				(() => {
+					const historyItemCalculatedValue = titleRow[0].getElementsByClassName(
+						"history-item-calculated",
+					);
+					if (historyItemCalculatedValue.length === 0) {
+						if (isDebugEnabled()) {
+							console.log(
+								"There is no history item calculated container, so the element cannot be edited.",
+								diceHistoryExpandedContainer[0],
+							);
+						}
+						return undefined;
+					}
+					const titleText = getTranslation(
+						"ui.notification.awaitingPixelsRoll",
+						"en",
+					);
+					historyItemCalculatedValue[0].innerHTML = titleText;
+				})();
+
+				// Remove additional elements in the title bar
+				(() => {
+					const diceRollerButton =
+						titleRow[0].getElementsByClassName("dice-roller-button");
+					if (diceRollerButton.length > 0) {
+						diceRollerButton[0].parentElement?.removeChild(diceRollerButton[0]);
+					} else if (isDebugEnabled()) {
+						console.log(
+							"There is no dice roller button, so the element cannot be edited.",
+							titleRow[0],
+						);
+					}
+				})();
+
+				(() => {
+					const historyItemContainer = titleRow[0].getElementsByClassName(
+						"history-item-container",
+					);
+					if (historyItemContainer.length > 1) {
+						historyItemContainer[
+							historyItemContainer.length - 1
+						].parentElement?.removeChild(
+							historyItemContainer[historyItemContainer.length - 1],
+						);
+					} else if (isDebugEnabled()) {
+						console.log(
+							"There is no history item container, so the element cannot be edited.",
+							titleRow[0],
+						);
+					}
+				})();
+
+				(() => {
+					const diceHistoryResultSummaryContainer =
+						titleRow[0].getElementsByClassName(
+							"dice-history-result-summary-container",
+						);
+					if (diceHistoryResultSummaryContainer.length === 0) {
+						if (isDebugEnabled()) {
+							console.log(
+								"There is no dice history result summary container, so the element cannot be edited.",
+								titleRow[0],
+							);
+							return undefined;
+						}
+					}
+					diceHistoryResultSummaryContainer[0].parentElement?.removeChild(
+						diceHistoryResultSummaryContainer[0],
+					);
+				})();
+
+				// Set expected dice as words
+				const expandedBottomContainer =
+					diceHistoryExpandedContainer[0].getElementsByClassName(
+						"history-item-container dice-history-expanded-bottom-container",
+					);
+				if (expandedBottomContainer.length === 0) {
+					if (isDebugEnabled()) {
+						console.log(
+							"There is no dice history bottom expanded container, so the element cannot be edited.",
+							expandedBottomContainer[0],
+						);
+					}
+					return undefined;
+				}
+
+				(() => {
+					const topBodyContainer =
+						expandedBottomContainer[0].getElementsByClassName(
+							"history-item-static",
+						);
+					if (topBodyContainer.length === 0) {
+						if (isDebugEnabled()) {
+							console.log(
+								"There is no historiy item static, so the element cannot be edited.",
+								expandedBottomContainer[0],
+							);
+						}
+						return undefined;
+					}
+					topBodyContainer[0].innerHTML = rollRequest.stringify(false, ", ");
+				})();
+
+				// Display the dice to be rolled
+				(() => {
+					let dieContainer = expandedBottomContainer[0].getElementsByClassName(
+						"history-item-static__value panic-table-result-description",
+					);
+					if (dieContainer.length === 0) {
+						dieContainer = expandedBottomContainer[0].getElementsByClassName(
+							"history-item-result",
+						);
+					}
+					if (dieContainer.length === 0) {
+						if (isDebugEnabled()) {
+							console.log(
+								"There is no panic table result or history item result container, so the element cannot be edited.",
+								expandedBottomContainer[0],
+							);
+						}
+						return undefined;
+					}
+					dieContainer[0].setAttribute(
+						"style",
+						`
+						display: flex;
+					`,
+					);
+					dieContainer[0].parentElement?.setAttribute(
+						"style",
+						`
+						display: flex;
+						width: 100%;
+						margin: 0px;
+					`,
+					);
+
+					/*
+					.dice-roller-pool__pool > div:first-child {
+							gap: 4px;
+							padding-bottom: 12px;
+							border-bottom: 1px solid var(--alien-color-5);
+							justify-content: center;
+					}
+
+					<style>
+					.css-1j3gjs0 {
+							box-sizing: border-box;
+							display: flex;
+							flex-flow: wrap;
+							width: 100%;
+							margin: 0px;
+							column-gap: 8px;
+					}
+					*/
+
+					const createDieSymbolFigure = (
+						dieSize: "d4" | "d6" | "d8" | "d10" | "d12" | "d20",
+					): HTMLDivElement => {
+						const dieFigure = document.createElement("div");
+						dieFigure.classList.add(
+							"MuiGrid-root",
+							"MuiGrid-item",
+							"history-item-result__die",
+							`history-item-result__die--${dieSize}`,
+							"history-item-result__die--7",
+							"dice-history-result-dice",
+						);
+						dieFigure.setAttribute(
+							"style",
+							`
+							box-sizing: border-box;
+							margin: 0px;
+							-webkit-box-align: center;
+							align-items: center;
+						`,
+						);
+
+						const figure = document.createElement("figure");
+						figure.classList.add(
+							"history-item-result__image-container",
+							"MuiBox-root",
+						);
+						figure.setAttribute(
+							"style",
+							`
+							background: url(https://content.demiplane.com/nexus/daggerheart/character/dice/dh-${dieSize}-die.png);
+							background-size: auto 100%;
+							background-position: center;
+							background-repeat: no-repeat;
+						`,
+						);
+						dieFigure.appendChild(figure);
+
+						// This is left empty for the time being, though it could in future be filled with the actually rolled result as a kind of live update.
+						const resultNumber = document.createElement("p");
+						resultNumber.classList.add(
+							"MuiTypography-root",
+							"MuiTypography-body1",
+							"history-item-result__label",
+							`expected-pixels-roll-${dieSize}`,
+						);
+						resultNumber.setAttribute(
+							"style",
+							`
+							position: absolute;
+							padding-top: 4.5px !important;
+							font-weight: 400;
+						`,
+						);
+						dieFigure.appendChild(resultNumber);
+
+						return dieFigure;
+					};
+
+					const createDieSymbolFigures = (
+						count: number,
+						dieSize: "d4" | "d6" | "d8" | "d10" | "d12" | "d20",
+					) =>
+						new Array<HTMLDivElement>(count)
+							// We have to create mock elements to be able to use the map function
+							.fill(null as unknown as HTMLDivElement)
+							.map(() => createDieSymbolFigure(dieSize));
+
+					const expectedD4s = createDieSymbolFigures(rollRequest.d4, "d4");
+					const expectedD6s = createDieSymbolFigures(rollRequest.d6, "d6");
+					const expectedD8s = createDieSymbolFigures(rollRequest.d8, "d8");
+					const expectedD10s = createDieSymbolFigures(rollRequest.d10, "d10");
+					const expectedD12s = createDieSymbolFigures(rollRequest.d12, "d12");
+					const expectedD20s = createDieSymbolFigures(rollRequest.d20, "d20");
+
+					dieContainer[0].replaceChildren(
+						...expectedD4s,
+						...expectedD6s,
+						...expectedD8s,
+						...expectedD10s,
+						...expectedD12s,
+						...expectedD20s,
+					);
+				})();
 			})();
 
 			// Show the notification
