@@ -518,7 +518,7 @@ const registerVirtualRollers = () => {
 		const cleanCount = Math.max(count, 1);
 		const results: RollEvent[] = new Array(cleanCount);
 		for (let i = 0; i < cleanCount; i++) {
-			const randomFace = Math.round(Math.random() * 4) + 1;
+			const randomFace = Math.floor(Math.random() * 4) + 1;
 			results[i] = handleDieRolled(
 				"d4",
 				randomFace,
@@ -534,7 +534,7 @@ const registerVirtualRollers = () => {
 		const cleanCount = Math.max(count, 1);
 		const results: RollEvent[] = new Array(cleanCount);
 		for (let i = 0; i < cleanCount; i++) {
-			const randomFace = Math.round(Math.random() * 6) + 1;
+			const randomFace = Math.floor(Math.random() * 6) + 1;
 			results[i] = handleDieRolled(
 				"d6",
 				randomFace,
@@ -550,7 +550,7 @@ const registerVirtualRollers = () => {
 		const cleanCount = Math.max(count, 1);
 		const results: RollEvent[] = new Array(cleanCount);
 		for (let i = 0; i < cleanCount; i++) {
-			const randomFace = Math.round(Math.random() * 8) + 1;
+			const randomFace = Math.floor(Math.random() * 8) + 1;
 			results[i] = handleDieRolled(
 				"d8",
 				randomFace,
@@ -566,7 +566,7 @@ const registerVirtualRollers = () => {
 		const cleanCount = Math.max(count, 1);
 		const results: RollEvent[] = new Array(cleanCount);
 		for (let i = 0; i < cleanCount; i++) {
-			const randomFace = Math.round(Math.random() * 10);
+			const randomFace = Math.floor(Math.random() * 10);
 			results[i] = handleDieRolled(
 				"d10",
 				randomFace,
@@ -582,7 +582,7 @@ const registerVirtualRollers = () => {
 		const cleanCount = Math.max(count, 1);
 		const results: RollEvent[] = new Array(cleanCount);
 		for (let i = 0; i < cleanCount; i++) {
-			const randomFace = Math.round(Math.random() * 10) * 10;
+			const randomFace = Math.floor(Math.random() * 10) * 10;
 			results[i] = handleDieRolled(
 				"d00",
 				randomFace,
@@ -598,7 +598,7 @@ const registerVirtualRollers = () => {
 		const cleanCount = Math.max(count, 1);
 		const results: RollEvent[] = new Array(cleanCount);
 		for (let i = 0; i < cleanCount; i++) {
-			const randomFace = Math.round(Math.random() * 12) + 1;
+			const randomFace = Math.floor(Math.random() * 12) + 1;
 			results[i] = handleDieRolled(
 				"d12",
 				randomFace,
@@ -614,7 +614,7 @@ const registerVirtualRollers = () => {
 		const cleanCount = Math.max(count, 1);
 		const results: RollEvent[] = new Array(cleanCount);
 		for (let i = 0; i < cleanCount; i++) {
-			const randomFace = Math.round(Math.random() * 20) + 1;
+			const randomFace = Math.floor(Math.random() * 20) + 1;
 			results[i] = handleDieRolled(
 				"d20",
 				randomFace,
@@ -630,7 +630,7 @@ const registerVirtualRollers = () => {
 		const cleanCount = Math.max(count, 1);
 		const results: RollEvent[] = new Array(cleanCount);
 		for (let i = 0; i < cleanCount; i++) {
-			const randomFace = Math.round(Math.random() * 2) - 1;
+			const randomFace = Math.floor(Math.random() * 2) - 1;
 			results[i] = handleDieRolled(
 				"d6fudge",
 				randomFace,

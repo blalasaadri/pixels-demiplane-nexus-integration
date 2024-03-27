@@ -205,7 +205,7 @@ export const setupPixelsMenu = async (): Promise<void> => {
         }
 
 		.css-pixels-integration-enabled-checkbox {
-			min-width: 20px;
+			min-width: 20px !important;
 			height: 20px !important;
 			width: 20px !important;
 			outline: 2px solid white;

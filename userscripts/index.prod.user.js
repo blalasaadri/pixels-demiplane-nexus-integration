@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.1.7
+// @version 0.1.8
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -1511,7 +1511,7 @@ const registerVirtualRollers = () => {
         const cleanCount = Math.max(count, 1);
         const results = new Array(cleanCount);
         for (let i = 0; i < cleanCount; i++) {
-            const randomFace = Math.round(Math.random() * 4) + 1;
+            const randomFace = Math.floor(Math.random() * 4) + 1;
             results[i] = handleDieRolled("d4", randomFace, "virtual", "Virtual d4", -4);
         }
         return results;
@@ -1520,7 +1520,7 @@ const registerVirtualRollers = () => {
         const cleanCount = Math.max(count, 1);
         const results = new Array(cleanCount);
         for (let i = 0; i < cleanCount; i++) {
-            const randomFace = Math.round(Math.random() * 6) + 1;
+            const randomFace = Math.floor(Math.random() * 6) + 1;
             results[i] = handleDieRolled("d6", randomFace, "virtual", "Virtual d6", -6);
         }
         return results;
@@ -1529,7 +1529,7 @@ const registerVirtualRollers = () => {
         const cleanCount = Math.max(count, 1);
         const results = new Array(cleanCount);
         for (let i = 0; i < cleanCount; i++) {
-            const randomFace = Math.round(Math.random() * 8) + 1;
+            const randomFace = Math.floor(Math.random() * 8) + 1;
             results[i] = handleDieRolled("d8", randomFace, "virtual", "Virtual d8", -8);
         }
         return results;
@@ -1538,7 +1538,7 @@ const registerVirtualRollers = () => {
         const cleanCount = Math.max(count, 1);
         const results = new Array(cleanCount);
         for (let i = 0; i < cleanCount; i++) {
-            const randomFace = Math.round(Math.random() * 10);
+            const randomFace = Math.floor(Math.random() * 10);
             results[i] = handleDieRolled("d10", randomFace, "virtual", "Virtual d10", -10);
         }
         return results;
@@ -1547,7 +1547,7 @@ const registerVirtualRollers = () => {
         const cleanCount = Math.max(count, 1);
         const results = new Array(cleanCount);
         for (let i = 0; i < cleanCount; i++) {
-            const randomFace = Math.round(Math.random() * 10) * 10;
+            const randomFace = Math.floor(Math.random() * 10) * 10;
             results[i] = handleDieRolled("d00", randomFace, "virtual", "Virtual d00", -100);
         }
         return results;
@@ -1556,7 +1556,7 @@ const registerVirtualRollers = () => {
         const cleanCount = Math.max(count, 1);
         const results = new Array(cleanCount);
         for (let i = 0; i < cleanCount; i++) {
-            const randomFace = Math.round(Math.random() * 12) + 1;
+            const randomFace = Math.floor(Math.random() * 12) + 1;
             results[i] = handleDieRolled("d12", randomFace, "virtual", "Virtual d12", -12);
         }
         return results;
@@ -1565,7 +1565,7 @@ const registerVirtualRollers = () => {
         const cleanCount = Math.max(count, 1);
         const results = new Array(cleanCount);
         for (let i = 0; i < cleanCount; i++) {
-            const randomFace = Math.round(Math.random() * 20) + 1;
+            const randomFace = Math.floor(Math.random() * 20) + 1;
             results[i] = handleDieRolled("d20", randomFace, "virtual", "Virtual d20", -20);
         }
         return results;
@@ -1574,7 +1574,7 @@ const registerVirtualRollers = () => {
         const cleanCount = Math.max(count, 1);
         const results = new Array(cleanCount);
         for (let i = 0; i < cleanCount; i++) {
-            const randomFace = Math.round(Math.random() * 2) - 1;
+            const randomFace = Math.floor(Math.random() * 2) - 1;
             results[i] = handleDieRolled("d6fudge", randomFace, "virtual", "Virtual dF", -3);
         }
         return results;
@@ -2733,7 +2733,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
         }
 
 		.css-pixels-integration-enabled-checkbox {
-			min-width: 20px;
+			min-width: 20px !important;
 			height: 20px !important;
 			width: 20px !important;
 			outline: 2px solid white;
