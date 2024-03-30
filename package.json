@@ -1,6 +1,6 @@
 {
   "name": "pixels-demiplane-nexus-integration",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "description": "An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.",
   "author": "blalasaadri",
   "license": "MIT",
@@ -17,6 +17,7 @@
     "build:watch": "webpack --watch",
     "format": "biome format --write src plugins webpack",
     "lint": "biome check --apply src plugins webpack",
+    "lint-apply-unsafe": "biome check --apply-unsafe src plugins webpack",
     "prepare": "husky"
   },
   "repository": {
@@ -61,7 +62,7 @@
     "husky": "^9.0.11",
     "terser-webpack-plugin": "^5.3.6",
     "ts-loader": "^9.2.6",
-    "ts-node": "^10.4.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.0.4",
     "webpack": "^5.64.3",
     "webpack-cli": "^5.0.1",

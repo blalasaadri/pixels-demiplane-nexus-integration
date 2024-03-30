@@ -1,9 +1,11 @@
 import type {
+	Pixel,
 	PixelColorway,
 	PixelDieType,
 } from "@systemic-games/pixels-web-connect";
 import {
 	Color,
+	getPixel,
 	repeatConnect,
 	requestPixel,
 } from "@systemic-games/pixels-web-connect";
@@ -234,6 +236,7 @@ const handleDieRolled = (
 
 export interface ConnectedDie {
 	id: number;
+	systemId: string;
 	name: string;
 	colorway: PixelColorway;
 	dieType: PixelDieType;
@@ -293,18 +296,20 @@ export const getCurrentlyConnectedDice = (): ConnectedDice =>
 	JSON.parse(JSON.stringify(connectedDice));
 registerConsoleCommands({ getConnectedDice: getCurrentlyConnectedDice });
 
-export const connectToDie = async () => {
-	const pixel = await requestPixel();
+const connectedDiceLocalStorageName = "pixelsIntegrationConnectedDice";
 
+const addListenerForDie = (pixel: Pixel): void => {
 	pixel.addEventListener("status", (status) => {
 		const {
 			dieType,
 			colorway: pixelColorway,
 			name: pixelName,
 			pixelId,
+			systemId,
 		} = pixel;
 		const connectedDie: ConnectedDie = {
 			id: pixelId,
+			systemId,
 			name: pixelName,
 			colorway: pixelColorway,
 			dieType,
@@ -354,6 +359,10 @@ export const connectToDie = async () => {
 						break;
 					}
 				}
+				localStorage.setItem(
+					connectedDiceLocalStorageName,
+					JSON.stringify(connectedDice),
+				);
 				updateEnabledForDice({
 					[dieType]: true,
 				});
@@ -476,6 +485,10 @@ export const connectToDie = async () => {
 					d20: connectedDice.d20.length > 0,
 					dF: connectedDice.dF.length > 0,
 				});
+				localStorage.setItem(
+					connectedDiceLocalStorageName,
+					JSON.stringify(connectedDice),
+				);
 				for (const disconnectedDie of disconnectedDice) {
 					notifyDiceConnectionListeners(disconnectedDie);
 				}
@@ -483,10 +496,26 @@ export const connectToDie = async () => {
 			}
 		}
 	});
+};
 
-	await repeatConnect(pixel, {
-		retries: 10,
-	});
+/**
+ * Complete the connection to a known Pixels die, including setting up listeners for various events.
+ *
+ * @param pixel The Pixel to connect to.
+ * @param connectionOptions.retries Number of retries before aborting.
+ * @param connectionOptions.onWillRetry Called before scheduling a retry.
+ * @returns a promise of the Pixel
+ */
+const internalConnectToDie = async (
+	pixel: Pixel,
+	connectionOptions: {
+		retries?: number;
+		onWillRetry?: (delay: number, retriesLeft: number, error: unknown) => void;
+	} = { retries: 10 },
+): Promise<Pixel> => {
+	addListenerForDie(pixel);
+
+	await repeatConnect(pixel, connectionOptions);
 	// Blink the die to indicate a successful connection
 	pixel.blink(Color.brightBlue, {
 		count: 3,
@@ -511,6 +540,62 @@ export const connectToDie = async () => {
 		}
 		handleDieRolled(dieType, face, pixelColorway, pixelName, pixelId);
 	});
+	return pixel;
+};
+
+export const connectToDie = async () => {
+	const pixel = await requestPixel();
+	return internalConnectToDie(pixel);
+};
+
+export const reconnectToDice = async (): Promise<Pixel[]> => {
+	const connectedDiceFromLocalStorage = localStorage.getItem(
+		connectedDiceLocalStorageName,
+	);
+	if (connectedDiceFromLocalStorage) {
+		const previouslyConnectedDice: ConnectedDice = JSON.parse(
+			connectedDiceFromLocalStorage,
+		);
+		const knownDice: string[] = [
+			...previouslyConnectedDice.d4,
+			...previouslyConnectedDice.d6,
+			...previouslyConnectedDice.d8,
+			...previouslyConnectedDice.d10,
+			...previouslyConnectedDice.d00,
+			...previouslyConnectedDice.d12,
+			...previouslyConnectedDice.d20,
+			...previouslyConnectedDice.dF,
+		]
+			.map(({ systemId }) => systemId)
+			.filter((systemId) => systemId !== undefined);
+		const reconnectedDice: (Pixel | undefined)[] = await Promise.all(
+			knownDice.map((systemId) => {
+				if (isDebugEnabled()) {
+					console.log(
+						`Attempting to connect to previously known die with system ID ${systemId}.`,
+					);
+				}
+				return getPixel(systemId)
+					.then((pixel) => {
+						if (pixel) {
+							return internalConnectToDie(pixel, {
+								retries: 20,
+							});
+						}
+						return undefined;
+					})
+					.catch((e) => {
+						console.log(
+							`Failed to reconnect to the previously known die with system ID ${systemId} due to an error.`,
+							e,
+						);
+						return undefined;
+					});
+			}),
+		);
+		return reconnectedDice.filter((die) => die !== undefined) as Pixel[];
+	}
+	return Promise.resolve([]);
 };
 
 const registerVirtualRollers = () => {

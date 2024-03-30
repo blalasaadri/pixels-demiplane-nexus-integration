@@ -1,5 +1,6 @@
 import * as integration from "./integration-utils";
 import { expectRolls, mergeRollResults } from "./roll-executor";
+import { reconnectToDice } from "./roll-handler";
 import { parseRollRequest } from "./roll-parser";
 import {
 	addRollsExpectedNotification,
@@ -195,6 +196,17 @@ window.navigation.addEventListener("navigate", (event) => {
 				})
 				.catch((e) => {
 					console.error("Error while setting up pixels menu.", e);
+				})
+				.then(() => reconnectToDice())
+				.then(() => {
+					if (integration.isDebugEnabled()) {
+						console.log(
+							"Connections to all previously known and nearby dice recreated.",
+						);
+					}
+				})
+				.catch((e) => {
+					console.error("Error while reconnecting to known dice.", e);
 				});
 		}
 	}
