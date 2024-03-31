@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.1.8
+// @version 0.2.0
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -84,6 +84,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const integration = __importStar(__webpack_require__(530));
 const roll_executor_1 = __webpack_require__(787);
+const roll_handler_1 = __webpack_require__(952);
 const roll_parser_1 = __webpack_require__(329);
 const ui_notifications_1 = __webpack_require__(213);
 const ui_pixels_menu_1 = __webpack_require__(426);
@@ -231,6 +232,15 @@ window.navigation.addEventListener("navigate", (event) => {
             })
                 .catch((e) => {
                 console.error("Error while setting up pixels menu.", e);
+            })
+                .then(() => (0, roll_handler_1.reconnectToDice)())
+                .then(() => {
+                if (integration.isDebugEnabled()) {
+                    console.log("Connections to all previously known and nearby dice recreated.");
+                }
+            })
+                .catch((e) => {
+                console.error("Error while reconnecting to known dice.", e);
             });
         }
     }
@@ -1149,7 +1159,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.connectToDie = exports.getCurrentlyConnectedDice = exports.registerDiceConnectionListener = exports.registerRollListener = void 0;
+exports.reconnectToDice = exports.connectToDie = exports.getCurrentlyConnectedDice = exports.registerDiceConnectionListener = exports.registerRollListener = void 0;
 const pixels_web_connect_1 = __webpack_require__(198);
 const console_commands_1 = __webpack_require__(816);
 const integration_utils_1 = __webpack_require__(530);
@@ -1330,12 +1340,13 @@ const notifyDiceConnectionListeners = (connectedDie) => __awaiter(void 0, void 0
 const getCurrentlyConnectedDice = () => JSON.parse(JSON.stringify(connectedDice));
 exports.getCurrentlyConnectedDice = getCurrentlyConnectedDice;
 (0, console_commands_1.registerConsoleCommands)({ getConnectedDice: exports.getCurrentlyConnectedDice });
-const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
-    const pixel = yield (0, pixels_web_connect_1.requestPixel)();
+const connectedDiceLocalStorageName = "pixelsIntegrationConnectedDice";
+const addListenerForDie = (pixel) => {
     pixel.addEventListener("status", (status) => {
-        const { dieType, colorway: pixelColorway, name: pixelName, pixelId, } = pixel;
+        const { dieType, colorway: pixelColorway, name: pixelName, pixelId, systemId, } = pixel;
         const connectedDie = {
             id: pixelId,
+            systemId,
             name: pixelName,
             colorway: pixelColorway,
             dieType,
@@ -1385,6 +1396,7 @@ const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
                         break;
                     }
                 }
+                localStorage.setItem(connectedDiceLocalStorageName, JSON.stringify(connectedDice));
                 (0, integration_utils_2.updateEnabledForDice)({
                     [dieType]: true,
                 });
@@ -1472,6 +1484,7 @@ const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
                     d20: connectedDice.d20.length > 0,
                     dF: connectedDice.dF.length > 0,
                 });
+                localStorage.setItem(connectedDiceLocalStorageName, JSON.stringify(connectedDice));
                 for (const disconnectedDie of disconnectedDice) {
                     notifyDiceConnectionListeners(disconnectedDie);
                 }
@@ -1479,9 +1492,18 @@ const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
             }
         }
     });
-    yield (0, pixels_web_connect_1.repeatConnect)(pixel, {
-        retries: 10,
-    });
+};
+/**
+ * Complete the connection to a known Pixels die, including setting up listeners for various events.
+ *
+ * @param pixel The Pixel to connect to.
+ * @param connectionOptions.retries Number of retries before aborting.
+ * @param connectionOptions.onWillRetry Called before scheduling a retry.
+ * @returns a promise of the Pixel
+ */
+const internalConnectToDie = (pixel_1, ...args_1) => __awaiter(void 0, [pixel_1, ...args_1], void 0, function* (pixel, connectionOptions = { retries: 10 }) {
+    addListenerForDie(pixel);
+    yield (0, pixels_web_connect_1.repeatConnect)(pixel, connectionOptions);
     // Blink the die to indicate a successful connection
     pixel.blink(pixels_web_connect_1.Color.brightBlue, {
         count: 3,
@@ -1504,8 +1526,52 @@ const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
         }
         handleDieRolled(dieType, face, pixelColorway, pixelName, pixelId);
     });
+    return pixel;
+});
+const connectToDie = () => __awaiter(void 0, void 0, void 0, function* () {
+    const pixel = yield (0, pixels_web_connect_1.requestPixel)();
+    return internalConnectToDie(pixel);
 });
 exports.connectToDie = connectToDie;
+const reconnectToDice = () => __awaiter(void 0, void 0, void 0, function* () {
+    const connectedDiceFromLocalStorage = localStorage.getItem(connectedDiceLocalStorageName);
+    if (connectedDiceFromLocalStorage) {
+        const previouslyConnectedDice = JSON.parse(connectedDiceFromLocalStorage);
+        const knownDice = [
+            ...previouslyConnectedDice.d4,
+            ...previouslyConnectedDice.d6,
+            ...previouslyConnectedDice.d8,
+            ...previouslyConnectedDice.d10,
+            ...previouslyConnectedDice.d00,
+            ...previouslyConnectedDice.d12,
+            ...previouslyConnectedDice.d20,
+            ...previouslyConnectedDice.dF,
+        ]
+            .map(({ systemId }) => systemId)
+            .filter((systemId) => systemId !== undefined);
+        const reconnectedDice = yield Promise.all(knownDice.map((systemId) => {
+            if ((0, integration_utils_1.isDebugEnabled)()) {
+                console.log(`Attempting to connect to previously known die with system ID ${systemId}.`);
+            }
+            return (0, pixels_web_connect_1.getPixel)(systemId)
+                .then((pixel) => {
+                if (pixel) {
+                    return internalConnectToDie(pixel, {
+                        retries: 20,
+                    });
+                }
+                return undefined;
+            })
+                .catch((e) => {
+                console.log(`Failed to reconnect to the previously known die with system ID ${systemId} due to an error.`, e);
+                return undefined;
+            });
+        }));
+        return reconnectedDice.filter((die) => die !== undefined);
+    }
+    return Promise.resolve([]);
+});
+exports.reconnectToDice = reconnectToDice;
 const registerVirtualRollers = () => {
     const rollVirtualD4 = (count = 1) => {
         const cleanCount = Math.max(count, 1);
