@@ -104,10 +104,18 @@ Depending on your operating system, you may have to enable some functions in you
 On Linux, you will have to open the <<Supported Browsers, supported browser>> you want to use and go to link:chrome://flags/#enable-web-bluetooth[chrome://flags/#enable-web-bluetooth].
 Here make sure, that the value is set to `Enabled`.
 
-===== Automatic reconnects (all operating systems)
-The integration will soon support reconnecting to dice after they have been disconnected (within reason).
+===== Automatic reconnects (all desktop operating systems)
+The integration supports reconnecting to dice when a character sheet is reloaded (within reason).
 
 To allow for this, go to link:chrome://flags/#enable-web-bluetooth-new-permissions-backend[chrome://flags/#enable-web-bluetooth-new-permissions-backend] and ensure that the value is set to `Enabled`.
+
+[NOTE]
+====
+This does not work in the Kiwi Browser for Android, it seems that the configuration flag does not exist there.
+Other mobile browsers that support userscripts may work.
+====
+
+If this is enabled, when a character sheet is loaded the integration will try to find any dice that were connected the previous time it was used.
 
 [#usage]
 === Using the integration on Demiplane Nexus
