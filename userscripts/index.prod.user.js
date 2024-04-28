@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.2.0
+// @version 0.2.1
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -10,7 +10,7 @@
 // @downloadURL https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/userscripts/index.prod.user.js
 // @license https://opensource.org/licenses/MIT
 // @match https://app.demiplane.com/*
-// @require https://unpkg.com/@systemic-games/pixels-web-connect@1.2.0/dist/umd/index.js
+// @require https://unpkg.com/@systemic-games/pixels-web-connect@1.2.2/dist/umd/index.js
 // @connect utils-api.demiplane.com
 // @run-at document-start
 // @grant unsafeWindow

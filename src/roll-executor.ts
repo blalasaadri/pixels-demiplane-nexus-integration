@@ -215,7 +215,7 @@ export const expectRolls = async (
 				gameSystem === "daggerheart"
 					? (d12Results: SingleRollResult[]) => {
 							return d12Results.length === 2 && d12Results[0] === d12Results[1];
-					  }
+						}
 					: undefined,
 			)(diceRolls),
 		);
@@ -229,13 +229,13 @@ export const expectRolls = async (
 					? (d20results: SingleRollResult[]) => {
 							const found = d20results?.find((result) => result === 20);
 							return found !== undefined && found >= 0;
-					  }
+						}
 					: undefined,
 				gameSystem === "pathfinder2e"
 					? (d20results: SingleRollResult[]) => {
 							const found = d20results?.find((result) => result === 1);
 							return found !== undefined && found >= 0;
-					  }
+						}
 					: undefined,
 			)(diceRolls),
 		);

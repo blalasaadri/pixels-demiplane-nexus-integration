@@ -108,3 +108,4 @@ dist
 !/userscripts/index.prod.user.js
 tmp/
 *.adoc.bak
+.nvmrc

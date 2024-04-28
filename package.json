@@ -1,6 +1,6 @@
 {
   "name": "pixels-demiplane-nexus-integration",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.",
   "author": "blalasaadri",
   "license": "MIT",
@@ -34,7 +34,7 @@
     "icon": "https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/assets/integration_logo.svg",
     "require-template": "https://unpkg.com/${dependencyName}@${dependencyVersion}",
     "require": [
-      "https://unpkg.com/@systemic-games/pixels-web-connect@1.2.0/dist/umd/index.js"
+      "https://unpkg.com/@systemic-games/pixels-web-connect@1.2.2/dist/umd/index.js"
     ],
     "match": [
       "https://app.demiplane.com/*"
@@ -53,17 +53,17 @@
     "updateURL": "https://github.com/blalasaadri/pixels-demiplane-nexus-integration/raw/main/userscripts/index.prod.user.js"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.6.1",
-    "@systemic-games/pixels-web-connect": "^1.2.0",
+    "@biomejs/biome": "1.7.1",
+    "@systemic-games/pixels-web-connect": "^1.2.2",
     "@types/dom-navigation": "^1.0.3",
-    "@types/node": "^18.19.28",
-    "@types/tampermonkey": "^4.20.4",
+    "@types/node": "^20.12.7",
+    "@types/tampermonkey": "^5.0.2",
     "@types/webpack": "^5.28.5",
     "husky": "^9.0.11",
     "terser-webpack-plugin": "^5.3.10",
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.3",
+    "typescript": "^5.4.5",
     "webpack": "^5.91.0",
     "webpack-cli": "^5.1.4",
     "webpack-merge": "^5.10.0"
