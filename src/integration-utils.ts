@@ -4,24 +4,48 @@ import { registerConsoleCommands } from "./console-commands";
 const characterSheetUrlRegex =
 	/https:\/\/app.demiplane.com\/nexus\/(?<gameSystem>[a-zA-Z0-9-]+)\/character-sheet\/(?<characterId>[a-z0-9-]+)/;
 
+interface CharacterSheetInfo {
+	characterId?: string;
+	characterName?: string;
+	characterAvatarUrl?: string;
+	gameSystem?: string;
+}
+
 /**
  * Retrieve information about the current character and the game system a character has been built for.
  * @returns an object containing the fields <code>characterId</code> and <code>gameSystem</code>, both of which are optional.
  */
-export const characterSheetInfo = (): {
-	characterId?: string;
-	gameSystem?: string;
-} => {
+export const characterSheetInfo = (): CharacterSheetInfo => {
 	const characterSheetUrl = location.href;
 	const characterSheetMatches = characterSheetUrl.match(characterSheetUrlRegex);
-
-	const characterId = characterSheetMatches?.groups?.characterId;
 	const gameSystem = characterSheetMatches?.groups?.gameSystem;
+	const characterId = characterSheetMatches?.groups?.characterId;
 
-	return {
+	const characterSheetInfo: CharacterSheetInfo = {
 		characterId,
 		gameSystem,
 	};
+
+	const avatarNameTags = document.getElementsByClassName("character-name");
+	if (avatarNameTags.length > 0) {
+		characterSheetInfo.characterName =
+			(avatarNameTags[0].firstChild as Element)?.textContent || undefined;
+	}
+
+	const avatarImageTags = document.getElementsByClassName("avatar__image");
+	if (avatarImageTags.length > 0) {
+		characterSheetInfo.characterAvatarUrl =
+			avatarImageTags[0].getAttribute("src") || undefined;
+	}
+
+	if (isDebugEnabled()) {
+		console.log({
+			descripton: "Character sheet info collected",
+			characterSheetInfo,
+		});
+	}
+
+	return characterSheetInfo;
 };
 
 // Methods for enabling and disabling the integration

@@ -177,6 +177,29 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
 	})();
 }
 
+const setupGameSystemClass = (): void => {
+	const mainDiv = document.getElementById("__next");
+	if (!mainDiv) {
+		return;
+	}
+	// Remove any "old" systems
+	for (const cssClass of mainDiv.classList || []) {
+		if (cssClass.toString().startsWith("pixels-integration-game-system-")) {
+			if (integration.isDebugEnabled()) {
+				console.log(
+					`Found the previous game system class ${cssClass}, removing it.`,
+				);
+			}
+			mainDiv.classList.remove(cssClass);
+		}
+	}
+	// Add a css class for the current system
+	const characterSheetInfo = integration.characterSheetInfo();
+	mainDiv.classList.add(
+		`pixels-integration-game-system-${characterSheetInfo.gameSystem}`,
+	);
+};
+
 const characterSheetUrlRegex =
 	/https:\/\/app.demiplane.com\/nexus\/[a-zA-Z0-9-]+\/character-sheet\/[a-z0-9-]+/;
 // Listen for navigation events
@@ -207,6 +230,9 @@ window.navigation.addEventListener("navigate", (event) => {
 				})
 				.catch((e) => {
 					console.error("Error while reconnecting to known dice.", e);
+				})
+				.then(() => {
+					setupGameSystemClass();
 				});
 		}
 	}

@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name pixels-demiplane-nexus-integration
-// @version 0.2.1
+// @version 0.2.2
 // @namespace http://tampermonkey.net/
 // @description An unofficial integration for rolling Pixels dice for your Demiplane Nexus charater sheets.
 // @author blalasaadri
@@ -216,6 +216,24 @@ if (!XMLHttpRequest.prototype.nativeOpen) {
         XMLHttpRequest.prototype.send = customSend;
     })();
 }
+const setupGameSystemClass = () => {
+    const mainDiv = document.getElementById("__next");
+    if (!mainDiv) {
+        return;
+    }
+    // Remove any "old" systems
+    for (const cssClass of mainDiv.classList || []) {
+        if (cssClass.toString().startsWith("pixels-integration-game-system-")) {
+            if (integration.isDebugEnabled()) {
+                console.log(`Found the previous game system class ${cssClass}, removing it.`);
+            }
+            mainDiv.classList.remove(cssClass);
+        }
+    }
+    // Add a css class for the current system
+    const characterSheetInfo = integration.characterSheetInfo();
+    mainDiv.classList.add(`pixels-integration-game-system-${characterSheetInfo.gameSystem}`);
+};
 const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/[a-zA-Z0-9-]+\/character-sheet\/[a-z0-9-]+/;
 // Listen for navigation events
 window.navigation.addEventListener("navigate", (event) => {
@@ -241,6 +259,9 @@ window.navigation.addEventListener("navigate", (event) => {
             })
                 .catch((e) => {
                 console.error("Error while reconnecting to known dice.", e);
+            })
+                .then(() => {
+                setupGameSystemClass();
             });
         }
     }
@@ -263,15 +284,32 @@ const characterSheetUrlRegex = /https:\/\/app.demiplane.com\/nexus\/(?<gameSyste
  * @returns an object containing the fields <code>characterId</code> and <code>gameSystem</code>, both of which are optional.
  */
 const characterSheetInfo = () => {
-    var _a, _b;
+    var _a, _b, _c;
     const characterSheetUrl = location.href;
     const characterSheetMatches = characterSheetUrl.match(characterSheetUrlRegex);
-    const characterId = (_a = characterSheetMatches === null || characterSheetMatches === void 0 ? void 0 : characterSheetMatches.groups) === null || _a === void 0 ? void 0 : _a.characterId;
-    const gameSystem = (_b = characterSheetMatches === null || characterSheetMatches === void 0 ? void 0 : characterSheetMatches.groups) === null || _b === void 0 ? void 0 : _b.gameSystem;
-    return {
+    const gameSystem = (_a = characterSheetMatches === null || characterSheetMatches === void 0 ? void 0 : characterSheetMatches.groups) === null || _a === void 0 ? void 0 : _a.gameSystem;
+    const characterId = (_b = characterSheetMatches === null || characterSheetMatches === void 0 ? void 0 : characterSheetMatches.groups) === null || _b === void 0 ? void 0 : _b.characterId;
+    const characterSheetInfo = {
         characterId,
         gameSystem,
     };
+    const avatarNameTags = document.getElementsByClassName("character-name");
+    if (avatarNameTags.length > 0) {
+        characterSheetInfo.characterName =
+            ((_c = avatarNameTags[0].firstChild) === null || _c === void 0 ? void 0 : _c.textContent) || undefined;
+    }
+    const avatarImageTags = document.getElementsByClassName("avatar__image");
+    if (avatarImageTags.length > 0) {
+        characterSheetInfo.characterAvatarUrl =
+            avatarImageTags[0].getAttribute("src") || undefined;
+    }
+    if ((0, exports.isDebugEnabled)()) {
+        console.log({
+            descripton: "Character sheet info collected",
+            characterSheetInfo,
+        });
+    }
+    return characterSheetInfo;
 };
 exports.characterSheetInfo = characterSheetInfo;
 _a = (() => {
@@ -2669,10 +2707,10 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
 
         @media (min-width: 1024px) {
             .css-pixels-settings {
-                flex-basis: 15%;
+                flex-basis: 20%;
                 -webkit-box-flex: 0;
                 flex-grow: 0;
-                max-width: 25%;
+                max-width: 29%;
             }
         }
 
@@ -2822,6 +2860,7 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
 			text-decoration: none;
 			letter-spacing: 0.02857em;
 			padding: 6px 8px;
+			margin-top: -3px;
 			transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
 		}
 		
@@ -2830,7 +2869,6 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
 		}
 
 		.css-pixels-integration-enabled-text {
-			font-family: GoodOTCondBold !important;
 			text-transform: uppercase;
 			white-space: nowrap;
 			overflow: hidden;
@@ -2973,7 +3011,6 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
 			flex-shrink: 0;
 			flex-basis: 100%;
 			text-align: center;
-			font-family: GoodOTCondBold !important;
 			font-size: 14px;
 			text-transform: uppercase;
 			white-space: nowrap;
@@ -3005,6 +3042,194 @@ const setupPixelsMenu = () => __awaiter(void 0, void 0, void 0, function* () {
             align-content: center;
             letter-spacing: 0.00938em;
         }
+
+		/* Game system specific settings */
+
+		.pixels-integration-game-system-5e .pixels-dice-menu {
+			background-color: rgb(39, 40, 49);
+		}
+		.pixels-integration-game-system-5e .css-pixels-dice-overview-die-info,
+		.pixels-integration-game-system-5e .jss-pixels-in-menu-title-p {
+			font-family: Oswald-SemiBold !important;
+		}
+		.pixels-integration-game-system-5e .css-pixels-integration-enabled-text {
+			font-family: Barlow !important;
+		}
+
+		.pixels-integration-game-system-alienrpg .pixels-dice-menu {
+			border-radius: 0px !important;
+			border: solid #a8c5bd;
+			border-width: 0px 1px 1px 1px;
+			background: linear-gradient(90deg, #252525 23.75%, rgba(45, 50, 48, 0) 66.93%),
+    url(https://content.demiplane.com/nexus/alienrpg/game-rules-menu-background.png),
+    rgb(45, 50, 48) !important;
+			background-size: cover !important;
+			background-repeat: no-repeat !important;
+			background-position: right bottom !important;
+		}
+		.pixels-integration-game-system-alienrpg .css-pixels-integration-enabled-text,
+		.pixels-integration-game-system-alienrpg .css-pixels-dice-overview-die-info {
+			font-family: Gotham !important;
+		}
+		.pixels-integration-game-system-alienrpg .css-pixels-dice-overview-dice-box button {
+			background: black;
+		}
+
+		.pixels-integration-game-system-avatarlegends .pixels-dice-menu {
+			background: linear-gradient(0deg, rgb(25, 39, 54, 1) 0%, rgba(25, 39, 54, 0) 50%), linear-gradient(90deg, rgb(25, 39, 54, 0.75) 0%, rgba(25, 39, 54, 0) 30%), linear-gradient(270deg, rgb(25, 39, 54, .75) 0%, rgba(25, 39, 54, 0) 30%), url(https://content.demiplane.com/nexus/avatarlegends/game-rules/game-rules-pattern.png), rgb(25, 39, 54) !important;
+			border-radius: 0 !important;
+		}
+		.pixels-integration-game-system-avatarlegends .css-pixels-integration-enabled-text,
+		.pixels-integration-game-system-avatarlegends .css-pixels-dice-overview-die-info {
+			font-family: 'Albertus Nova' !important;
+		}
+		.pixels-integration-game-system-avatarlegends .css-pixels-dice-overview-dice-box button {
+			background: black;
+		}
+
+		.pixels-integration-game-system-candelaobscura .pixels-dice-menu {
+			background: url(https://content.demiplane.com/nexus/candelaobscura/co-page.png) rgba(211, 211, 211, 0.5);
+			background-blend-mode: screen;
+			background-size: 100%;
+			border-radius: 0 !important;
+		}
+		.pixels-integration-game-system-candelaobscura .css-pixels-dice-overview-die-info,
+		.pixels-integration-game-system-candelaobscura .jss-pixels-in-menu-title-p {
+			font-family: Quelity-Regular !important;
+			color: #433E3C;
+		}
+		.pixels-integration-game-system-candelaobscura .css-pixels-integration-enabled-text {
+			font-family: 'vendetta' !important;
+			font-size: 16px;
+			font-weight: 700;
+			color: #433E3C;
+			padding-top: 3px;
+		}
+		.pixels-integration-game-system-candelaobscura .css-pixels-dice-overview-dice-box button {
+			background-color: #433E3C;
+			border-color: #433E3C;
+		}
+
+		.pixels-integration-game-system-daggerheart .pixels-dice-menu {
+			background-color: #0a0f21 !important;
+			background-image: url(https://content.demiplane.com/nexus/daggerheart/builder_bg.webp) !important;
+			backgorund-position: top center;
+			background-repeat: no-repeat;
+			border: 1px solid #f3c267;
+			border-top: none;
+		}
+		.pixels-integration-game-system-daggerheart .css-pixels-integration-enabled-text,
+		.pixels-integration-game-system-daggerheart .css-pixels-dice-overview-die-info {
+			font-family: 'Overpass-Black' !important;
+		}
+
+		.pixels-integration-game-system-hunter .pixels-dice-menu {
+			background: linear-gradient(90deg, rgb(45, 50, 48) 23.75%, rgba(45, 50, 48, 0) 66.93%), url(https://content.demiplane.com/nexus/hunter/game-rules/game-rules-background.png), rgb(45, 50, 48) !important;
+			background-size: cover !important;
+			background-repeat: no-repeat !important;
+			background-position: right center !important;
+			border-radius: 1px !important;
+		}
+		.pixels-integration-game-system-hunter .css-pixels-dice-overview-die-info,
+		.pixels-integration-game-system-hunter .jss-pixels-in-menu-title-p {
+			font-family: Druk !important;
+		}
+		.pixels-integration-game-system-hunter .css-pixels-integration-enabled-text {
+			font-family: Druk !important;
+			text-transform: uppercase;
+		}
+
+		.pixels-integration-game-system-marvelrpg .pixels-dice-menu {
+			background-color: #161616;
+		}
+		.pixels-integration-game-system-marvelrpg .css-pixels-dice-overview-die-info,
+		.pixels-integration-game-system-marvelrpg .jss-pixels-in-menu-title-p {
+			font-family: 'Aptifer Sans LT Pro' !important;
+			text-transform: uppercase;
+		}
+		.pixels-integration-game-system-marvelrpg .css-pixels-integration-enabled-text {
+			font-family: 'Aptifer Sans LT Pro' !important;
+			padding-top: 3px;
+		}
+
+		.pixels-integration-game-system-mutantyearzero .pixels-dice-menu {
+			border-radius: 1px !important;
+			background: linear-gradient(
+				90deg,
+				rgb(45, 50, 48) 23.75%,
+				rgba(45, 50, 48, 0) 66.93%
+			  ),
+			  url(https://content.demiplane.com/nexus/mutantyearzero/game-rules-background.png),
+			  rgb(45, 50, 48) !important;
+			background-size: cover !important;
+			background-repeat: no-repeat !important;
+			background-position: right center !important;
+		}
+		.pixels-integration-game-system-mutantyearzero .css-pixels-dice-overview-die-info,
+		.pixels-integration-game-system-mutantyearzero .jss-pixels-in-menu-title-p {
+			font-family: BigNoodleTitling !important;
+			font-size: 32px;
+			color: #E0E4E9;
+		}
+		.pixels-integration-game-system-mutantyearzero .css-pixels-integration-enabled-text {
+			font-family: ArcherPro !important;
+			text-transform: uppercase;
+			font-size: 16px;
+			color: #E0E4E9;
+		}
+
+		.pixels-integration-game-system-pathfinder2e .pixels-dice-menu {
+			background-color: #343434 !important;
+			background-image: url("https://images.demiplane.com/nexus/pathfinder-2e/game-rules-bg.png?format=webp&quality=100&width=1080");
+			background-image: image-set(
+				url("https://images.demiplane.com/nexus/pathfinder-2e/game-rules-bg.png?format=webp&quality=100&width=640") 1x,
+				url("https://images.demiplane.com/nexus/pathfinder-2e/game-rules-bg.png?format=webp&quality=100&width=750") 2x,
+				url("https://images.demiplane.com/nexus/pathfinder-2e/game-rules-bg.png?format=webp&quality=100&width=828") 3x,
+				url("https://images.demiplane.com/nexus/pathfinder-2e/game-rules-bg.png?format=webp&quality=100&width=1080") 4x,
+				url("https://images.demiplane.com/nexus/pathfinder-2e/game-rules-bg.png?format=webp&quality=100&width=1200") 5x,
+				url("https://images.demiplane.com/nexus/pathfinder-2e/game-rules-bg.png?format=webp&quality=100&width=1920") 6x,
+				url("https://images.demiplane.com/nexus/pathfinder-2e/game-rules-bg.png?format=webp&quality=100&width=2048") 7x,
+				url("https://images.demiplane.com/nexus/pathfinder-2e/game-rules-bg.png?format=webp&quality=100&width=3840") 8x
+			) !important;
+			backgorund-position: bottom center;
+			background-repeat: no-repeat;
+		}
+		.pixels-integration-game-system-pathfinder2e .css-pixels-integration-enabled-text,
+		.pixels-integration-game-system-pathfinder2e .css-pixels-dice-overview-die-info,
+		.pixels-integration-game-system-pathfinder2e .jss-pixels-in-menu-title-p {
+			font-family: GoodOTCondBold !important;
+		}
+
+		.pixels-integration-game-system-starfinder2e .pixels-dice-menu {
+			/* TODO Once the Starfinder system is available on Demiplane Nexus */
+		}
+		.pixels-integration-game-system-starfinder2e .css-pixels-integration-enabled-text,
+		.pixels-integration-game-system-starfinder2e .css-pixels-dice-overview-die-info,
+		.pixels-integration-game-system-starfinder2e .jss-pixels-in-menu-title-p {
+			font-family: GoodOTCondBold !important;
+		}
+
+		.pixels-integration-game-system-vampire .pixels-dice-menu {
+			background-image: url(https://content.demiplane.com/nexus/vampire/game-rules-bg.jpg);
+			background-size: cover;
+			background-position: center;
+			border-radius: 0;
+		}
+		.pixels-integration-game-system-vampire .css-pixels-dice-overview-die-info,
+		.pixels-integration-game-system-vampire .jss-pixels-in-menu-title-p {
+			font-family: Bodoni72 !important;
+			color: #C82434;
+		}
+		.pixels-integration-game-system-vampire .css-pixels-integration-enabled-text {
+			font-family: GillSans !important;
+			color: #fff;
+			padding-top: 3px;
+		}
+		.pixels-integration-game-system-vampire .css-pixels-dice-overview-dice-box button {
+			background-color: #202020;
+			border-color: #202020;
+			border-radius: 0;
+		}
         `;
     const closedArrowSvg = (cssClasses) => `
     <svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium ${cssClasses.join(" ")}"
